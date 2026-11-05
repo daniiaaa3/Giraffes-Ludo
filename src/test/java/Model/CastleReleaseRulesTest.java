@@ -57,4 +57,29 @@ class CastleReleaseRulesTest {
                 () -> rules.getReleaseSquare(
                         PlayerColor.RED, 4, true));
     }
+
+@Test
+void releaseWorksForAllPlayerColors() {
+    for (GameSetup.PlayerColor color :
+            GameSetup.PlayerColor.values()) {
+
+        int expected = board.getStartSquare(color);
+
+        int actual = rules.getReleaseSquare(
+            color, 6, true
+        );
+
+        assertEquals(expected, actual);
+    }
+}
+
+@Test
+void rollsOneToFiveCannotReleasePiece() {
+    for (int steps = 1; steps <= 5; steps++) {
+        assertFalse(rules.canRelease(steps, true));
+        assertFalse(rules.canRelease(steps, false));
+    }
+}
+
+
 }

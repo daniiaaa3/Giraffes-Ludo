@@ -159,4 +159,80 @@ void homePathsHaveCorrectCoordinates() {
     }
 }
 
+@Test
+void fixedPositionsMatchOfficialBoard() {
+    EasyBoard board = new EasyBoard();
+
+    // Starting squares (#)
+    assertEquals(new EasyBoard.BoardCell(13, 6),
+        board.getSharedTrackCell(
+            board.getStartSquare(GameSetup.PlayerColor.RED)));
+
+    assertEquals(new EasyBoard.BoardCell(6, 1),
+        board.getSharedTrackCell(
+            board.getStartSquare(GameSetup.PlayerColor.GREEN)));
+
+    assertEquals(new EasyBoard.BoardCell(1, 8),
+        board.getSharedTrackCell(
+            board.getStartSquare(GameSetup.PlayerColor.YELLOW)));
+
+    assertEquals(new EasyBoard.BoardCell(8, 13),
+        board.getSharedTrackCell(
+            board.getStartSquare(GameSetup.PlayerColor.BLUE)));
+
+    // Fixed arrow squares
+    assertEquals(new EasyBoard.BoardCell(14, 7),
+        board.getArrowSquare(GameSetup.PlayerColor.RED));
+
+    assertEquals(new EasyBoard.BoardCell(7, 0),
+        board.getArrowSquare(GameSetup.PlayerColor.GREEN));
+
+    assertEquals(new EasyBoard.BoardCell(0, 7),
+        board.getArrowSquare(GameSetup.PlayerColor.YELLOW));
+
+    assertEquals(new EasyBoard.BoardCell(7, 14),
+        board.getArrowSquare(GameSetup.PlayerColor.BLUE));
+}
+
+@Test
+void homePathCoordinatesMatchEasyBoard() {
+    EasyBoard board = new EasyBoard();
+
+    assertEquals(java.util.List.of(
+        new EasyBoard.BoardCell(13, 7),
+        new EasyBoard.BoardCell(12, 7),
+        new EasyBoard.BoardCell(11, 7),
+        new EasyBoard.BoardCell(10, 7),
+        new EasyBoard.BoardCell(9, 7),
+        new EasyBoard.BoardCell(8, 7)
+    ), board.getHomePathCells(GameSetup.PlayerColor.RED));
+
+    assertEquals(java.util.List.of(
+        new EasyBoard.BoardCell(7, 1),
+        new EasyBoard.BoardCell(7, 2),
+        new EasyBoard.BoardCell(7, 3),
+        new EasyBoard.BoardCell(7, 4),
+        new EasyBoard.BoardCell(7, 5),
+        new EasyBoard.BoardCell(7, 6)
+    ), board.getHomePathCells(GameSetup.PlayerColor.GREEN));
+
+    assertEquals(java.util.List.of(
+        new EasyBoard.BoardCell(1, 7),
+        new EasyBoard.BoardCell(2, 7),
+        new EasyBoard.BoardCell(3, 7),
+        new EasyBoard.BoardCell(4, 7),
+        new EasyBoard.BoardCell(5, 7),
+        new EasyBoard.BoardCell(6, 7)
+    ), board.getHomePathCells(GameSetup.PlayerColor.YELLOW));
+
+    assertEquals(java.util.List.of(
+        new EasyBoard.BoardCell(7, 13),
+        new EasyBoard.BoardCell(7, 12),
+        new EasyBoard.BoardCell(7, 11),
+        new EasyBoard.BoardCell(7, 10),
+        new EasyBoard.BoardCell(7, 9),
+        new EasyBoard.BoardCell(7, 8)
+    ), board.getHomePathCells(GameSetup.PlayerColor.BLUE));
+}
+
 }
