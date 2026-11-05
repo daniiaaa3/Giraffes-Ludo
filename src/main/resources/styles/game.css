@@ -1,0 +1,172 @@
+
+/*
+ * Giraffes Ludo - Shared Game Stylesheet
+ *
+ * Purpose: Defines the visual identity of the game.
+ * MVC Responsibility: View
+ * Iteration: 1
+ */
+
+/* Main application background */
+.menu-root {
+    -fx-background-color: #FFF3F8;
+    -fx-font-family: "Segoe UI";
+}
+
+/* Centered menu container */
+.menu-card {
+    -fx-background-color: #FFFFFF;
+    -fx-background-radius: 24;
+    -fx-border-color: #F3D5E2;
+    -fx-border-radius: 24;
+    -fx-border-width: 1;
+    -fx-padding: 42 38 38 38;
+    -fx-effect: dropshadow(
+        gaussian, rgba(122, 54, 85, 0.12),
+        24, 0.2, 0, 9
+    );
+}
+
+/* Text styles */
+.menu-eyebrow {
+    -fx-text-fill: #B47794;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+}
+
+.menu-title {
+    -fx-text-fill: #592A42;
+    -fx-font-size: 38px;
+    -fx-font-weight: bold;
+}
+
+.menu-subtitle {
+    -fx-text-fill: #906B7D;
+    -fx-font-size: 16px;
+}
+
+.menu-footer {
+    -fx-text-fill: #A18392;
+    -fx-font-size: 12px;
+}
+
+/* Shared button styling */
+.menu-button {
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-background-radius: 13;
+    -fx-cursor: hand;
+    -fx-padding: 13 20;
+}
+
+/* Main action */
+.primary-button {
+    -fx-background-color: #E8A2BE;
+    -fx-text-fill: #4C2035;
+}
+
+.primary-button:hover {
+    -fx-background-color: #DA8FAC;
+}
+
+/* Secondary navigation */
+.secondary-button {
+    -fx-background-color: #FFF0F5;
+    -fx-text-fill: #68354D;
+    -fx-border-color: #F4D8E3;
+    -fx-border-radius: 13;
+}
+
+.secondary-button:hover {
+    -fx-background-color: #F9DEEA;
+}
+
+.menu-button:focused {
+    -fx-border-color: #9A4C70;
+    -fx-border-width: 2;
+}
+
+/* ---------- Game Setup Screen ---------- */
+
+.setup-scroll {
+    -fx-background-color: #FFF3F8;
+    -fx-background: #FFF3F8;
+    -fx-border-color: transparent;
+}
+
+.setup-scroll > .viewport {
+    -fx-background-color: #FFF3F8;
+}
+
+.setup-label {
+    -fx-text-fill: #906B7D;
+    -fx-font-size: 13px;
+}
+
+.setup-count,
+.setup-name {
+    -fx-background-color: #FFFFFF;
+    -fx-border-color: #E9C8D7;
+    -fx-border-radius: 10;
+    -fx-background-radius: 10;
+    -fx-font-size: 14px;
+}
+
+.setup-name {
+    -fx-padding: 11;
+}
+
+.setup-name:focused {
+    -fx-border-color: #B76B91;
+    -fx-border-width: 2;
+}
+
+/* Each player's configuration panel */
+.player-panel {
+    -fx-background-color: #FFF9FB;
+    -fx-background-radius: 15;
+    -fx-border-color: #F2DCE5;
+    -fx-border-radius: 15;
+    -fx-padding: 16;
+}
+
+.player-title {
+    -fx-text-fill: #592A42;
+    -fx-font-size: 17px;
+    -fx-font-weight: bold;
+}
+
+/* Clickable Ludo color cards */
+.color-choice {
+    -fx-background-color: #FFFFFF;
+    -fx-border-color: #EBD5DF;
+    -fx-border-width: 1.5;
+    -fx-background-radius: 12;
+    -fx-border-radius: 12;
+    -fx-padding: 11 13;
+    -fx-cursor: hand;
+}
+
+.color-choice:hover {
+    -fx-background-color: #FFF0F5;
+    -fx-border-color: #DCA4BD;
+}
+
+/* Selected card */
+.color-choice:selected {
+    -fx-background-color: #FFF0F5;
+    -fx-border-color: #C36C91;
+    -fx-border-width: 2;
+}
+
+.color-choice-label {
+    -fx-text-fill: #592A42;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+}
+
+.color-choice-check {
+    -fx-text-fill: #A64C78;
+    -fx-font-size: 17px;
+    -fx-font-weight: bold;
+}
