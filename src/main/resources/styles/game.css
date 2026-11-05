@@ -170,3 +170,384 @@
     -fx-font-size: 17px;
     -fx-font-weight: bold;
 }
+
+/* =======================================
+   GIRAFFES LUDO - ANIMATED MAIN MENU
+   ======================================= */
+
+/* Refined soft-pink background */
+.menu-root {
+    -fx-background-color: linear-gradient(
+        to bottom right,
+        #FFF9FC,
+        #FBE4EE
+    );
+    -fx-font-family: "Segoe UI";
+}
+
+/* Main game menu container */
+.hero-card {
+    -fx-background-color: #FFFFFF;
+    -fx-background-radius: 25;
+    -fx-padding: 32;
+    -fx-effect: dropshadow(
+        gaussian,
+        rgba(103, 45, 76, 0.13),
+        26, 0.2, 0, 10
+    );
+}
+
+.hero-eyebrow {
+    -fx-text-fill: #B77997;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+}
+
+.hero-title {
+    -fx-text-fill: #592A42;
+    -fx-font-size: 34px;
+    -fx-font-weight: bold;
+}
+
+.hero-subtitle {
+    -fx-text-fill: #A6557E;
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+}
+
+.hero-description {
+    -fx-text-fill: #917183;
+    -fx-font-size: 14px;
+}
+
+.hero-footer {
+    -fx-text-fill: #AD8D9D;
+    -fx-font-size: 10px;
+    -fx-font-weight: bold;
+}
+
+/* Illustration area */
+.hero-preview-panel {
+    -fx-background-color: #FFF5F9;
+    -fx-background-radius: 20;
+    -fx-padding: 18;
+}
+
+.hero-preview-title {
+    -fx-text-fill: #8D476B;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+}
+
+.hero-preview-caption {
+    -fx-text-fill: #98768A;
+    -fx-font-size: 12px;
+}
+
+/* Frame surrounding the drawn Ludo board */
+.ludo-preview-board {
+    -fx-background-color: white;
+    -fx-background-radius: 13;
+    -fx-border-color: #E8CAD8;
+    -fx-border-radius: 13;
+    -fx-border-width: 1;
+    -fx-effect: dropshadow(
+        gaussian,
+        rgba(103, 45, 76, 0.14),
+        15, 0.15, 0, 5
+    );
+}
+
+/* More polished navigation buttons */
+.menu-button {
+    -fx-background-radius: 13;
+    -fx-border-radius: 13;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-cursor: hand;
+    -fx-padding: 13 20;
+}
+
+.primary-button {
+    -fx-background-color: #E5A0BE;
+    -fx-text-fill: #54283E;
+}
+
+.primary-button:hover {
+    -fx-background-color: #D98CAC;
+}
+
+.secondary-button {
+    -fx-background-color: #FFF1F6;
+    -fx-text-fill: #68354D;
+    -fx-border-color: #F1D6E1;
+}
+
+.secondary-button:hover {
+    -fx-background-color: #F9DFE9;
+}
+
+/* =====================================
+   COMPACT GAME SETUP LOBBY
+   ===================================== */
+
+.setup-card {
+    -fx-padding: 26 28;
+    -fx-background-radius: 22;
+}
+
+.setup-title {
+    -fx-font-size: 29px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #592A42;
+}
+
+.setup-subtitle {
+    -fx-font-size: 13px;
+    -fx-text-fill: #97788A;
+}
+
+.player-panel {
+    -fx-background-color: #FFF8FB;
+    -fx-background-radius: 16;
+    -fx-border-color: #F1D9E5;
+    -fx-border-radius: 16;
+    -fx-padding: 15;
+}
+
+.player-title {
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #592A42;
+}
+
+.setup-name {
+    -fx-background-color: #FFFFFF;
+    -fx-border-color: #ECD4E0;
+    -fx-border-radius: 10;
+    -fx-background-radius: 10;
+    -fx-padding: 9 11;
+    -fx-font-size: 13px;
+}
+
+.color-choice {
+    -fx-background-color: #FFFFFF;
+    -fx-border-color: #EBD5DF;
+    -fx-border-radius: 10;
+    -fx-background-radius: 10;
+    -fx-border-width: 1.5;
+    -fx-padding: 8 10;
+    -fx-cursor: hand;
+}
+
+.color-choice:hover {
+    -fx-background-color: #FFF0F6;
+    -fx-border-color: #D69BB7;
+}
+
+.color-choice:selected {
+    -fx-background-color: #FCE7F0;
+    -fx-border-color: #B9648D;
+    -fx-border-width: 2;
+}
+
+.color-choice-label {
+    -fx-font-size: 13px;
+    -fx-text-fill: #653B50;
+}
+
+.color-choice-check {
+    -fx-font-size: 15px;
+    -fx-text-fill: #A64C78;
+}
+
+/* Softer proportions for the compact lobby. */
+.setup-card {
+    -fx-padding: 26 28 24 28;
+    -fx-background-radius: 22;
+    -fx-border-radius: 22;
+    -fx-border-color: #F1D5E1;
+    -fx-border-width: 1;
+}
+
+.setup-scroll,
+.setup-scroll > .viewport {
+    -fx-background-color: #FFF3F8;
+    -fx-background: #FFF3F8;
+}
+
+.setup-eyebrow {
+    -fx-font-size: 10px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #B57B98;
+}
+
+.setup-title {
+    -fx-font-size: 29px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #592A42;
+}
+
+.setup-subtitle {
+    -fx-font-size: 13px;
+    -fx-text-fill: #97788A;
+}
+
+.setup-hint {
+    -fx-font-size: 11px;
+    -fx-text-fill: #99778A;
+}
+
+.setup-label {
+    -fx-font-size: 12px;
+    -fx-text-fill: #926C80;
+}
+
+.setup-count {
+    -fx-background-color: #FFFFFF;
+    -fx-border-color: #E9CBD9;
+    -fx-border-width: 1;
+    -fx-border-radius: 10;
+    -fx-background-radius: 10;
+    -fx-font-size: 13px;
+}
+
+.setup-count:focused {
+    -fx-border-color: #B76B91;
+}
+
+/* Individual player cards. */
+.player-panel {
+    -fx-background-color: #FFF9FC;
+    -fx-background-radius: 16;
+    -fx-border-color: #EFD5E0;
+    -fx-border-width: 1.3;
+    -fx-border-radius: 16;
+    -fx-padding: 16;
+}
+
+.player-title {
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #592A42;
+}
+
+.player-stripe {
+    -fx-background-color: #E8B2CA;
+    -fx-background-radius: 4;
+}
+
+.player-number-badge {
+    -fx-background-color: #F9E6EF;
+    -fx-background-radius: 50;
+}
+
+.player-number {
+    -fx-text-fill: #8E4E71;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+}
+
+.player-color-status {
+    -fx-font-size: 10px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #AB8C9B;
+}
+
+.setup-name {
+    -fx-background-color: #FFFFFF;
+    -fx-border-color: #EACDD9;
+    -fx-border-width: 1;
+    -fx-background-radius: 10;
+    -fx-border-radius: 10;
+    -fx-padding: 10 11;
+    -fx-font-size: 13px;
+    -fx-text-fill: #592A42;
+    -fx-prompt-text-fill: #B99EAC;
+}
+
+.setup-name:focused {
+    -fx-border-color: #B76B91;
+    -fx-border-width: 2;
+}
+
+.setup-color-caption {
+    -fx-font-size: 10px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #A27F91;
+}
+
+/* Clickable swatches: names and visible checkmarks. */
+.color-choice {
+    -fx-background-color: #FFFFFF;
+    -fx-border-color: #EAD2DD;
+    -fx-border-width: 1.5;
+    -fx-border-radius: 11;
+    -fx-background-radius: 11;
+    -fx-padding: 9 10;
+    -fx-cursor: hand;
+}
+
+.color-choice:hover {
+    -fx-background-color: #FFF3F8;
+    -fx-border-color: #D6A0B9;
+}
+
+.color-choice:selected {
+    -fx-background-color: #FCECF3;
+    -fx-border-width: 2;
+    -fx-effect: dropshadow(gaussian, rgba(133, 68, 100, 0.12), 10, 0.15, 0, 2);
+}
+
+.color-choice:focused {
+    -fx-border-width: 2;
+}
+
+.color-choice-label {
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #653B50;
+}
+
+.color-choice-check {
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #804B65;
+}
+
+/* Match selection borders to each Ludo piece color. */
+.color-choice-red:selected {
+    -fx-border-color: #E85561;
+    -fx-background-color: #FFF0F2;
+}
+
+.color-choice-blue:selected {
+    -fx-border-color: #4A90E2;
+    -fx-background-color: #EDF5FF;
+}
+
+.color-choice-green:selected {
+    -fx-border-color: #49B77C;
+    -fx-background-color: #EDF9F1;
+}
+
+.color-choice-yellow:selected {
+    -fx-border-color: #DBAF1A;
+    -fx-background-color: #FFFAE6;
+}
+
+/* The player card and header stripe reflect the selected color. */
+.player-panel-red { -fx-border-color: #ECAEB6; }
+.player-panel-blue { -fx-border-color: #B1D3F6; }
+.player-panel-green { -fx-border-color: #ABE1C4; }
+.player-panel-yellow { -fx-border-color: #E8D58F; }
+
+.player-stripe-red { -fx-background-color: #E85561; }
+.player-stripe-blue { -fx-background-color: #4A90E2; }
+.player-stripe-green { -fx-background-color: #49B77C; }
+.player-stripe-yellow { -fx-background-color: #F0C541; }
+
+.player-status-red { -fx-text-fill: #CA4355; }
+.player-status-blue { -fx-text-fill: #347ABF; }
+.player-status-green { -fx-text-fill: #248B5C; }
+.player-status-yellow { -fx-text-fill: #92700D; }
