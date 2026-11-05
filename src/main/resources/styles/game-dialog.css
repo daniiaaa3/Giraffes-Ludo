@@ -1,0 +1,80 @@
+/* Giraffes Ludo - Professional Dialogs
+ * View styling shared by information, error and success modals.
+ * Separate from game.css so other screen styles remain unchanged.
+ */
+
+.game-dialog-card {
+    -fx-background-color: #FFFFFF;
+    -fx-background-radius: 24;
+    -fx-border-color: #EFD1DE;
+    -fx-border-radius: 24;
+    -fx-border-width: 1;
+    -fx-effect: dropshadow(gaussian, rgba(91, 39, 66, 0.22), 25, 0.18, 0, 9);
+    -fx-font-family: "Segoe UI";
+}
+
+.dialog-symbol-badge {
+    -fx-background-color: #FCE7F0;
+    -fx-background-radius: 100;
+}
+
+.dialog-symbol {
+    -fx-text-fill: #B35D87;
+    -fx-font-size: 25px;
+    -fx-font-weight: bold;
+}
+
+.dialog-success .dialog-symbol-badge {
+    -fx-background-color: #E7F6ED;
+}
+.dialog-success .dialog-symbol {
+    -fx-text-fill: #27936B;
+}
+.dialog-error .dialog-symbol-badge {
+    -fx-background-color: #FDEBED;
+}
+.dialog-error .dialog-symbol {
+    -fx-text-fill: #D95D70;
+}
+
+.dialog-eyebrow {
+    -fx-text-fill: #B97798;
+    -fx-font-size: 10px;
+    -fx-font-weight: bold;
+}
+
+.dialog-heading {
+    -fx-text-fill: #592A42;
+    -fx-font-size: 23px;
+    -fx-font-weight: bold;
+}
+
+.dialog-description {
+    -fx-text-fill: #7D6170;
+    -fx-font-size: 14px;
+    -fx-line-spacing: 4;
+}
+
+.dialog-action {
+    -fx-background-color: #E5A0BE;
+    -fx-text-fill: #54283E;
+    -fx-background-radius: 12;
+    -fx-padding: 11 22;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-cursor: hand;
+}
+.dialog-action:hover {
+    -fx-background-color: #D98CAC;
+}
+.dialog-action:focused {
+    -fx-border-color: #9D567C;
+    -fx-border-radius: 12;
+    -fx-border-width: 1.5;
+}
+.dialog-error .dialog-action {
+    -fx-background-color: #F3B4C1;
+}
+.dialog-error .dialog-action:hover {
+    -fx-background-color: #EAA0B0;
+}

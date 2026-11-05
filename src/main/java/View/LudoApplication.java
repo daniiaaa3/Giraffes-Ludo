@@ -1,4 +1,3 @@
-
 package View;
 
 import java.net.URL;
@@ -8,56 +7,43 @@ import Controller.GameSetupController;
 import Controller.MainMenuController;
 import Model.GameSetup;
 import Model.GameSetup.PlayerEntry;
-
 import javafx.application.Application;
 import javafx.scene.Scene;
-import javafx.scene.control.Alert;
-import javafx.scene.control.Alert.AlertType;
 import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
 
 /**
- * Main entry point and screen coordinator for Giraffes Ludo.
+ * JavaFX entry point and screen coordinator for Giraffes Ludo.
  *
- * Initializes JavaFX and connects the application's
- * views and controllers.
+ * Creates the shared Scene and connects the main menu and setup
+ * interfaces to their controllers. Gameplay integration follows
+ * when the board and turn-management components are available.
  *
- * MVC Responsibility: Application initialization
+ * MVC Responsibility: Application startup and navigation
  * SRS Requirements: FR-1.1, FR-1.2, FR-1.4, FR-1.5
  * Iteration: 1
  */
 public class LudoApplication extends Application {
 
     /**
-     * Initializes the application window.
+     * Starts JavaFX and displays the main menu.
      *
-     * @param primaryStage main JavaFX window
+     * @param primaryStage application window
      */
     @Override
     public void start(Stage primaryStage) {
+        Scene scene = new Scene(new StackPane(), 1000, 700);
 
-        // Create one Scene for the entire application.
-        Scene scene = new Scene(
-                new StackPane(), 1000, 700);
-
-        // Load the shared pink stylesheet.
         URL stylesheet = LudoApplication.class.getResource(
                 "/styles/game.css");
-
         if (stylesheet == null) {
             throw new IllegalStateException(
                     "Missing stylesheet: /styles/game.css");
         }
+        scene.getStylesheets().add(stylesheet.toExternalForm());
 
-        scene.getStylesheets().add(
-                stylesheet.toExternalForm());
-
-        // Display the first screen.
         showMainMenu(scene);
-
-        primaryStage.setTitle(
-                "Giraffes Ludo - Iteration 1");
-
+        primaryStage.setTitle("Giraffes Ludo - Iteration 1");
         primaryStage.setScene(scene);
         primaryStage.setMinWidth(800);
         primaryStage.setMinHeight(600);
@@ -65,29 +51,22 @@ public class LudoApplication extends Application {
     }
 
     /**
-     * Displays the main menu and connects its controller.
+     * Displays the main menu and connects its navigation callback.
      *
-     * @param scene the application's shared Scene
+     * @param scene shared game Scene
      */
     private void showMainMenu(Scene scene) {
-
         MainMenuView view = new MainMenuView();
-
-        // The controller requests navigation to Game Setup.
-        new MainMenuController(
-                view,
-                () -> showGameSetup(scene));
-
+        new MainMenuController(view, () -> showGameSetup(scene));
         scene.setRoot(view.getRoot());
     }
 
     /**
-     * Displays Game Setup and connects validation actions.
+     * Displays player setup and connects validation and Back actions.
      *
-     * @param scene the application's shared Scene
+     * @param scene shared game Scene
      */
     private void showGameSetup(Scene scene) {
-
         GameSetupView view = new GameSetupView();
         GameSetup model = new GameSetup();
 
@@ -95,40 +74,32 @@ public class LudoApplication extends Application {
                 view,
                 model,
                 () -> showMainMenu(scene),
-                players -> showSetupConfirmation(players)
-        );
+                players -> showSetupConfirmation(scene, players));
 
         scene.setRoot(view.getRoot());
     }
 
     /**
-     * Temporarily displays the validated player setup.
+     * Confirms valid configuration while gameplay integration is pending.
      *
-     * The actual gameplay screen will be connected when
-     * the board and turn-management components are ready.
-     *
+     * @param scene shared Scene used to locate the owner window
      * @param players validated player configurations
      */
     private void showSetupConfirmation(
-            List<PlayerEntry> players) {
-
+            Scene scene, List<PlayerEntry> players) {
         StringBuilder details = new StringBuilder();
-
         for (PlayerEntry player : players) {
             details.append(player.name())
-                   .append(" - ")
+                   .append(" — ")
                    .append(player.color())
                    .append("\n");
         }
 
-        Alert alert = new Alert(AlertType.INFORMATION);
-        alert.setTitle("Game Setup Complete");
-        alert.setHeaderText("Player configuration is valid!");
-        alert.setContentText(
-                details.toString() +
-                "\nGameplay will be connected next.");
-
-        alert.showAndWait();
+        GameDialog.showSuccess(
+                scene.getWindow(),
+                "Players Are Ready!",
+                details.toString().stripTrailing()
+                        + "\n\nThe playable Ludo board will be connected next.");
     }
 
     /**
