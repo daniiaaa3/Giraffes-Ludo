@@ -23,6 +23,10 @@ import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 import javafx.scene.layout.Pane;
 import javafx.scene.shape.Polygon;
+import javafx.scene.effect.DropShadow;
+import javafx.scene.paint.CycleMethod;
+import javafx.scene.paint.RadialGradient;
+import javafx.scene.paint.Stop;
 
 /**
  * Visual representation of the Easy Ludo board.
@@ -343,20 +347,56 @@ public class EasyBoardView extends StackPane {
         );
     }
 
+
     /**
-     * Creates a circular piece graphic.
+     * Creates a 3D-style Ludo piece with
+     * a soft highlight and subtle shadow.
      */
     private Circle createPieceGraphic(
             PlayerColor color, boolean crowded) {
 
-        Circle piece = new Circle(crowded ? 6 : 11);
+        double radius = crowded ? 6 : 11;
 
-        piece.setFill(Color.web(getPlayerColor(color)));
+        Circle piece = new Circle(radius);
+
+        Color baseColor =
+                Color.web(getPlayerColor(color));
+
+        // Create a soft 3D color gradient.
+        RadialGradient gradient = new RadialGradient(
+                0,
+                0,
+                0.30,
+                0.25,
+                0.85,
+                true,
+                CycleMethod.NO_CYCLE,
+                new Stop(0.0,
+                        baseColor.interpolate(Color.WHITE, 0.45)),
+                new Stop(0.45, baseColor),
+                new Stop(1.0, baseColor.darker())
+        );
+
+        piece.setFill(gradient);
+
+        // White border keeps pieces visible
+        // on matching colored squares.
         piece.setStroke(Color.WHITE);
         piece.setStrokeWidth(2);
 
+        // Subtle shadow adds depth.
+        DropShadow shadow = new DropShadow();
+        shadow.setRadius(5);
+        shadow.setOffsetY(2);
+        shadow.setColor(
+                Color.rgb(70, 35, 55, 0.30)
+        );
+
+        piece.setEffect(shadow);
+
         return piece;
     }
+
 
     /**
      * Determines the background color of each cell.
