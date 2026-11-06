@@ -13,6 +13,11 @@ import javafx.util.Duration;
 import javafx.scene.control.Button;
 import javafx.scene.layout.VBox;
 
+import java.util.List;
+import java.util.function.Consumer;
+
+import Model.Piece;
+
 public class GameplayView {
 
     private final BorderPane root;
@@ -21,6 +26,8 @@ public class GameplayView {
     private final Label messageLabel;
     private final Label diceLabel;
     private final Button rollButton;
+    private final EasyBoardView boardView;
+    private final DiceView graphicalDice = new DiceView();
 
     private int elapsedSeconds = 0;
     private final Timeline timer;
@@ -78,6 +85,10 @@ public class GameplayView {
         diceSection.setPadding(new Insets(20));
 
         root.setRight(diceSection);
+        
+     // Display the Easy Ludo board
+        boardView = new EasyBoardView();
+        root.setCenter(boardView);
 
         // Update the timer every second
         timer = new Timeline(new KeyFrame(
@@ -85,6 +96,15 @@ public class GameplayView {
                 event -> updateTimer()
         ));
         timer.setCycleCount(Timeline.INDEFINITE);
+        
+        // Display the graphical die in the right panel.
+        if (root.getRight() instanceof VBox dicePanel) {
+            dicePanel.getChildren().add(0, graphicalDice);
+        }
+
+        // Hide the old textual dice result.
+        diceLabel.setVisible(false);
+        diceLabel.setManaged(false);
     }
 
     private void updateTimer() {
@@ -131,6 +151,48 @@ public class GameplayView {
     public void setDiceResult(int result) {
         diceLabel.setText("Dice: " + result);
     }
+    
+    /**
+     * Refreshes the pieces displayed on the board.
+     */
+    public void updateBoard(Model.GameState gameState) {
+        boardView.renderPieces(gameState);
+    }
+    
+
+    /**
+     * Registers the piece-selection callback.
+     */
+    public void setOnPieceSelected(Consumer<Piece> handler) {
+        boardView.setOnPieceSelected(handler);
+    }
+
+    /**
+     * Highlights the pieces that may legally move.
+     */
+    public void setSelectablePieces(List<Piece> pieces) {
+        boardView.setSelectablePieces(pieces);
+    }
+
+    /**
+     * Enables or disables the Roll Dice button.
+     */
+    public void setRollEnabled(boolean enabled) {
+        rollButton.setDisable(!enabled);
+    }
+    
+    /**
+     * Animates the graphical die before completing a roll.
+     */
+    public void animateDiceRoll(
+            int value, Runnable onFinished) {
+
+        // Prevent another roll during the animation.
+        rollButton.setDisable(true);
+
+        graphicalDice.animateRoll(value, onFinished);
+    }
+
 
     public Parent getRoot() {
         return root;
