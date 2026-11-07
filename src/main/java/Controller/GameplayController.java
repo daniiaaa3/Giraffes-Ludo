@@ -65,12 +65,16 @@ public class GameplayController {
         // Play the animation first.
         view.animateDiceRoll(result, () -> {
 
-            // Apply the real result after the animation.
+            // Check move availability before the roll changes
+            // the active player or starts a bonus turn.
+            boolean hasLegalMove =
+                    gameState.hasLegalMove(player, result);
+
             Outcome outcome =
                     gameState.recordRoll(player, result);
 
             view.setDiceResult(result);
-            handleOutcome(outcome);
+            handleRollOutcome(outcome, player, hasLegalMove);
 
             // Refresh the board and button state.
             refreshView();
@@ -99,7 +103,55 @@ public class GameplayController {
     }
 
     /**
-     * Displays the appropriate game feedback.
+     * Handles a die-roll outcome, including FR-6.5 when
+     * the player has no legal move available.
+     *
+     * The Model remains responsible for advancing turns
+     * and granting bonus rolls. This Controller only
+     * selects the appropriate player-facing message.
+     *
+     * @param outcome result produced by the GameState
+     * @param roller the player who rolled the die
+     * @param hasLegalMove whether that roll could move a piece
+     */
+    private void handleRollOutcome(
+            Outcome outcome,
+            PlayerEntry roller,
+            boolean hasLegalMove) {
+
+        // A third consecutive six always forfeits the turn.
+        // It must not be displayed as an ordinary no-move roll.
+        if (outcome == Outcome.THIRD_SIX_FORFEIT) {
+            handleOutcome(outcome);
+            return;
+        }
+
+        if (!hasLegalMove) {
+            if (outcome == Outcome.TURN_PASSED) {
+                view.showGameMessage(
+                        "No available moves for " + roller.name()
+                        + ". "
+                        + gameState.getActivePlayer().name()
+                        + " plays next.");
+                return;
+            }
+
+            if (outcome == Outcome.BONUS_ROLL) {
+                view.showGameMessage(
+                        "No available moves for " + roller.name()
+                        + ". Bonus roll! Roll again.");
+                return;
+            }
+        }
+
+        handleOutcome(outcome);
+    }
+
+    /**
+     * Displays the appropriate game feedback for ordinary
+     * move results and special turn outcomes.
+     *
+     * @param outcome the turn rule outcome
      */
     private void handleOutcome(Outcome outcome) {
 
