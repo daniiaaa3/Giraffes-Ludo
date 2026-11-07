@@ -32,6 +32,7 @@ public class DiceView extends StackPane {
 
     private boolean rolling = false;
 
+
     public DiceView() {
 
         setMinSize(DICE_SIZE, DICE_SIZE);
@@ -182,6 +183,8 @@ public class DiceView extends StackPane {
             }
         });
 
+        rotation.setRate(Motion.speed());
+        rollingTimeline.setRate(Motion.speed());
         rotation.play();
         rollingTimeline.play();
     }

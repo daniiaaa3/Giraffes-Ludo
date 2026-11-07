@@ -56,7 +56,7 @@ public class GameSetup {
                 players.size() < MIN_PLAYERS ||
                 players.size() > MAX_PLAYERS) {
             throw new IllegalArgumentException(
-                    "Please select 2 to 4 players.");
+                    "Choose between 2 and 4 players");
         }
 
         Set<String> names = new HashSet<>();
@@ -70,7 +70,7 @@ public class GameSetup {
             // Check that the player entry exists.
             if (player == null) {
                 throw new IllegalArgumentException(
-                        "Player information is missing.");
+                        "Some player details are missing");
             }
 
             // Reject empty player names.
@@ -78,7 +78,7 @@ public class GameSetup {
 
             if (name == null || name.isBlank()) {
                 throw new IllegalArgumentException(
-                        "Player names cannot be empty.");
+                        "Every player needs a name");
             }
 
             name = name.trim();
@@ -87,14 +87,18 @@ public class GameSetup {
             if (!names.add(
                     name.toLowerCase(Locale.ROOT))) {
                 throw new IllegalArgumentException(
-                        "Player names must be unique.");
+                        "Each player needs a different name");
             }
 
-            // Each player must choose a different color.
-            if (player.color() == null ||
-                    !colors.add(player.color())) {
+            // Every player must choose a color, and colors differ.
+            if (player.color() == null) {
                 throw new IllegalArgumentException(
-                        "Each player must have a unique color.");
+                        "Every player needs to choose a color");
+            }
+
+            if (!colors.add(player.color())) {
+                throw new IllegalArgumentException(
+                        "Each player needs a different color");
             }
 
             result.add(

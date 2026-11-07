@@ -10,7 +10,7 @@
 /* Main application background */
 .menu-root {
     -fx-background-color: #FFF3F8;
-    -fx-font-family: "Segoe UI";
+    -fx-font-family: "Nunito", "Fredoka", "Segoe UI", "Avenir Next", "Helvetica Neue", "Trebuchet MS", sans-serif;
 }
 
 /* Centered menu container */
@@ -182,7 +182,7 @@
         #FFF9FC,
         #FBE4EE
     );
-    -fx-font-family: "Segoe UI";
+    -fx-font-family: "Nunito", "Fredoka", "Segoe UI", "Avenir Next", "Helvetica Neue", "Trebuchet MS", sans-serif;
 }
 
 /* Main game menu container */
@@ -575,3 +575,333 @@
     -fx-border-width: 2;
 }
 
+
+
+/* =====================================================
+ * Gameplay screen
+ * ===================================================== */
+
+.gameplay-top-bar {
+    -fx-background-color: rgba(255, 255, 255, 0.94);
+    -fx-background-radius: 22;
+    -fx-border-color: #F1D6E2;
+    -fx-border-radius: 22;
+    -fx-padding: 12 20 12 16;
+    -fx-effect: dropshadow(gaussian, rgba(122, 54, 85, 0.10), 16, 0.1, 0, 5);
+}
+
+.turn-chip {
+    -fx-background-color: #FFF0F6;
+    -fx-background-radius: 16;
+    -fx-padding: 8 20 8 14;
+}
+
+.turn-label {
+    -fx-font-size: 21px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #542844;
+}
+
+.timer-chip {
+    -fx-background-color: #F3ECFA;
+    -fx-background-radius: 16;
+    -fx-padding: 9 18;
+}
+
+.timer-label {
+    -fx-font-size: 17px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #6F4F94;
+}
+
+.side-panel {
+    -fx-background-color: rgba(255, 255, 255, 0.92);
+    -fx-background-radius: 24;
+    -fx-border-color: #F1D6E2;
+    -fx-border-radius: 24;
+    -fx-padding: 22 14 22 14;
+    -fx-effect: dropshadow(gaussian, rgba(122, 54, 85, 0.10), 18, 0.1, 0, 6);
+}
+
+.panel-title {
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #8A4A69;
+}
+
+.roster-card {
+    -fx-background-color: #FFFFFF;
+    -fx-background-radius: 16;
+    -fx-border-radius: 16;
+    -fx-border-width: 1.5;
+    -fx-padding: 10 12 10 12;
+}
+
+.roster-card-active {
+    -fx-background-color: #FFF9E9;
+    -fx-border-width: 2.5;
+    -fx-effect: dropshadow(gaussian, rgba(240, 197, 65, 0.60), 16, 0.25, 0, 3);
+}
+
+.roster-name {
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #4E2A3F;
+}
+
+.roster-color-name {
+    -fx-font-size: 11px;
+    -fx-text-fill: #9A7B8B;
+}
+
+.roster-turn-tag {
+    -fx-font-size: 10px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #7A4E00;
+    -fx-background-color: #FBE6A8;
+    -fx-background-radius: 9;
+    -fx-padding: 3 8 3 8;
+}
+
+.dice-caption {
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #9D5279;
+}
+
+.extra-roll-badge {
+    -fx-background-color: linear-gradient(to right, #FFE08A, #FFC857);
+    -fx-text-fill: #6B4200;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-background-radius: 14;
+    -fx-padding: 6 14 6 14;
+    -fx-effect: dropshadow(gaussian, rgba(255, 200, 87, 0.7), 12, 0.3, 0, 2);
+}
+
+.roll-button {
+    -fx-background-color: linear-gradient(to bottom, #F6BAD1, #E78FB3);
+    -fx-background-radius: 18;
+    -fx-border-color: #C65C8C;
+    -fx-border-width: 2;
+    -fx-border-radius: 18;
+    -fx-text-fill: #4B1F38;
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(gaussian, rgba(198, 92, 140, 0.35), 12, 0.2, 0, 4);
+}
+
+.roll-button:hover {
+    -fx-background-color: linear-gradient(to bottom, #FAC9DB, #EE9DBD);
+}
+
+.roll-button:pressed {
+    -fx-background-color: linear-gradient(to bottom, #E78FB3, #D97BA4);
+}
+
+.roll-button:disabled {
+    -fx-opacity: 0.55;
+    -fx-effect: none;
+    -fx-cursor: default;
+}
+
+.roll-button:focused {
+    -fx-border-color: #8E3A66;
+}
+
+.message-bar {
+    -fx-background-color: rgba(255, 255, 255, 0.94);
+    -fx-background-radius: 20;
+    -fx-border-color: #F1D6E2;
+    -fx-border-radius: 20;
+    -fx-padding: 13 26 13 26;
+    -fx-effect: dropshadow(gaussian, rgba(122, 54, 85, 0.08), 14, 0.1, 0, 4);
+}
+
+.message-text {
+    -fx-font-size: 17px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #B3366F;
+}
+
+
+/* Pinned footer of the setup screen */
+.setup-footer-bar {
+    -fx-background-color: rgba(255, 255, 255, 0.96);
+    -fx-background-radius: 20;
+    -fx-border-color: #F1D6E2;
+    -fx-border-radius: 20;
+    -fx-padding: 12 18 12 22;
+    -fx-effect: dropshadow(gaussian, rgba(122, 54, 85, 0.12), 18, 0.1, 0, 5);
+}
+
+
+/* =====================================================
+ * Unified design system (menu, setup and gameplay)
+ *
+ * Soft pastel background, white rounded cards with the same
+ * shadow, one primary and one secondary button style, one input
+ * style and one heading style, so all screens feel like one app.
+ * ===================================================== */
+
+.menu-root {
+    -fx-background-color: linear-gradient(
+        to bottom right, #FFF8FB 0%, #FCEBF4 55%, #F6EEFB 100%);
+}
+
+.menu-card,
+.hero-card {
+    -fx-background-radius: 28;
+    -fx-border-radius: 28;
+    -fx-border-color: #F3D9E6;
+    -fx-effect: dropshadow(
+        gaussian, rgba(122, 54, 85, 0.13), 28, 0.12, 0, 10);
+}
+
+.menu-title,
+.hero-title,
+.setup-title {
+    -fx-text-fill: #4F2440;
+}
+
+.menu-button {
+    -fx-background-radius: 16;
+    -fx-border-radius: 16;
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-cursor: hand;
+}
+
+.primary-button {
+    -fx-background-color: linear-gradient(to bottom, #F6BAD1, #E78FB3);
+    -fx-border-color: #C65C8C;
+    -fx-border-width: 2;
+    -fx-border-radius: 16;
+    -fx-text-fill: #4B1F38;
+    -fx-font-size: 16px;
+    -fx-effect: dropshadow(
+        gaussian, rgba(198, 92, 140, 0.35), 14, 0.2, 0, 4);
+}
+
+.primary-button:hover {
+    -fx-background-color: linear-gradient(to bottom, #FAC9DB, #EE9DBD);
+}
+
+.primary-button:pressed {
+    -fx-background-color: linear-gradient(to bottom, #E78FB3, #D97BA4);
+}
+
+.secondary-button {
+    -fx-background-color: #FFFFFF;
+    -fx-border-color: #E9C6D8;
+    -fx-border-width: 1.5;
+    -fx-border-radius: 16;
+    -fx-text-fill: #68354D;
+}
+
+.secondary-button:hover {
+    -fx-background-color: #FFF0F6;
+    -fx-border-color: #D79BB8;
+}
+
+.secondary-button:pressed {
+    -fx-background-color: #FBE1EC;
+}
+
+.gameplay-menu-button {
+    -fx-background-color: #FFFFFF;
+    -fx-border-color: #E9C6D8;
+    -fx-border-width: 1.5;
+    -fx-border-radius: 16;
+    -fx-background-radius: 16;
+    -fx-padding: 10 20 10 20;
+    -fx-text-fill: #68354D;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+}
+
+.gameplay-menu-button:hover {
+    -fx-background-color: #FFF0F6;
+    -fx-border-color: #D79BB8;
+}
+
+.gameplay-menu-button:pressed {
+    -fx-background-color: #FBE1EC;
+}
+
+.setup-name {
+    -fx-font-size: 15px;
+    -fx-background-color: #FFFFFF;
+    -fx-background-radius: 14;
+    -fx-border-color: #EBD3DF;
+    -fx-border-width: 1.5;
+    -fx-border-radius: 14;
+    -fx-padding: 11 14 11 14;
+    -fx-text-fill: #4F2440;
+    -fx-prompt-text-fill: #B79AA9;
+}
+
+.setup-name:focused {
+    -fx-border-color: #D4709F;
+    -fx-effect: dropshadow(
+        gaussian, rgba(212, 112, 159, 0.28), 10, 0.2, 0, 0);
+}
+
+.player-panel {
+    -fx-background-radius: 20;
+    -fx-border-radius: 20;
+}
+
+.color-choice {
+    -fx-background-radius: 14;
+    -fx-border-radius: 14;
+}
+
+.color-choice:selected {
+    -fx-border-width: 2.5;
+    -fx-effect: dropshadow(
+        gaussian, rgba(122, 54, 85, 0.20), 10, 0.2, 0, 2);
+}
+
+.panel-title {
+    -fx-text-fill: #7B3F5C;
+}
+
+/* The active player's card gets its color from code; this is
+ * the shared shape and spacing of every roster card. */
+.roster-card {
+    -fx-background-radius: 18;
+    -fx-border-radius: 18;
+    -fx-padding: 14 14 14 14;
+    -fx-background-color: rgba(255, 255, 255, 0.85);
+}
+
+.roster-name {
+    -fx-font-size: 16px;
+}
+
+.roster-turn-tag {
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-background-radius: 11;
+    -fx-padding: 4 11 4 10;
+}
+
+
+/* Compact setup layout so four player cards fit at 1280 x 720 */
+.setup-card {
+    -fx-padding: 18 24 18 24;
+}
+
+.player-panel {
+    -fx-padding: 12 14 12 14;
+}
+
+.setup-name {
+    -fx-padding: 8 14 8 14;
+}
+
+.color-choice {
+    -fx-padding: 5 10 5 10;
+}

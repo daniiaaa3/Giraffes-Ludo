@@ -1,5 +1,7 @@
 package View;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.URL;
 import java.util.List;
 import java.util.Random;
@@ -14,6 +16,7 @@ import Model.StepsDice;
 import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.scene.layout.StackPane;
+import javafx.scene.text.Font;
 import javafx.stage.Stage;
 
 /**
@@ -38,6 +41,8 @@ public class LudoApplication extends Application {
      */
     @Override
     public void start(Stage primaryStage) {
+        loadOptionalFonts();
+
         Scene scene = new Scene(new StackPane(), 1280, 720);
 
         URL stylesheet = LudoApplication.class.getResource(
@@ -52,11 +57,34 @@ public class LudoApplication extends Application {
 
         showMainMenu(scene);
 
-        primaryStage.setTitle("Giraffes Ludo - Iteration 1");
+        primaryStage.setTitle("Giraffes Ludo");
         primaryStage.setScene(scene);
         primaryStage.setMinWidth(850);
         primaryStage.setMinHeight(600);
         primaryStage.show();
+    }
+
+    /**
+     * Loads Nunito or Fredoka when their font files are bundled in
+     * /fonts. When they are absent the stylesheet falls back to the
+     * best installed system font, so the game always looks fine.
+     */
+    private static void loadOptionalFonts() {
+        String[] files = {
+            "Nunito-Regular", "Nunito-SemiBold", "Nunito-Bold",
+            "Nunito-ExtraBold", "Fredoka-Regular", "Fredoka-SemiBold"
+        };
+
+        for (String file : files) {
+            try (InputStream in = LudoApplication.class
+                    .getResourceAsStream("/fonts/" + file + ".ttf")) {
+                if (in != null) {
+                    Font.loadFont(in, 14);
+                }
+            } catch (IOException ignored) {
+                // A missing or unreadable font only changes the look.
+            }
+        }
     }
 
     /**

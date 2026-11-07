@@ -19,7 +19,14 @@ import javafx.scene.Cursor;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.LinearGradient;
+import javafx.animation.Interpolator;
+import javafx.animation.KeyFrame;
+import javafx.animation.KeyValue;
 import javafx.animation.ScaleTransition;
+import javafx.animation.Timeline;
+import javafx.scene.layout.Pane;
+import javafx.scene.text.Font;
+import javafx.scene.text.FontWeight;
 import javafx.util.Duration;
 import javafx.scene.control.Label;
 import javafx.scene.layout.GridPane;
@@ -55,6 +62,14 @@ public class EasyBoardView extends StackPane {
     private Consumer<Piece> onPieceSelected;
     private List<Piece> selectablePieces = List.of();
 
+    /** Transparent layer above the cells where a moving piece flies. */
+    private final Pane movingLayer = new Pane();
+
+    /** The piece currently being animated (drawn by the animation). */
+    private Piece hiddenPiece;
+    private boolean animating;
+    private GameState lastState;
+
     /**
      * Builds a polished board background while retaining an
      * independent, interactive cell layer for game pieces.
@@ -73,7 +88,13 @@ public class EasyBoardView extends StackPane {
 
         // The artwork never intercepts clicks. Pieces remain
         // inside their original 15x15 interactive cell grid.
-        getChildren().addAll(boardArtwork, boardGrid);
+        movingLayer.setMouseTransparent(true);
+        movingLayer.setPickOnBounds(false);
+        movingLayer.setMinSize(BOARD_PIXELS, BOARD_PIXELS);
+        movingLayer.setPrefSize(BOARD_PIXELS, BOARD_PIXELS);
+        movingLayer.setMaxSize(BOARD_PIXELS, BOARD_PIXELS);
+
+        getChildren().addAll(boardArtwork, boardGrid, movingLayer);
         setAlignment(Pos.CENTER);
         setMinSize(BOARD_PIXELS, BOARD_PIXELS);
         setPrefSize(BOARD_PIXELS, BOARD_PIXELS);
@@ -100,6 +121,7 @@ public class EasyBoardView extends StackPane {
                 cell.setStyle("-fx-background-color: transparent;");
 
                 addArrow(cell, row, col);
+                addStartMarker(cell, row, col);
                 cells[row][col] = cell;
                 boardGrid.add(cell, col, row);
             }
@@ -126,7 +148,6 @@ public class EasyBoardView extends StackPane {
         drawCastle(gc, PlayerColor.BLUE, 9, 9);
 
         drawCrossTrack(gc);
-        drawSafeStartingSquares(gc);
         drawClassicFinish(gc);
 
         gc.restore();
@@ -256,45 +277,32 @@ public class EasyBoardView extends StackPane {
     }
 
     /**
-     * Highlights protected starting squares with a small star.
-     * The marker is only visual and does not change safety rules.
+     * Adds the # marker to each player's protected starting square
+     * (FR-2.5, FR-3.2). The four squares come from the EasyBoard
+     * model, the same squares where a released piece lands.
      *
-     * @param gc board drawing surface
+     * @param cell the interactive cell being created
+     * @param row board row
+     * @param col board column
      */
-    private void drawSafeStartingSquares(GraphicsContext gc) {
+    private void addStartMarker(StackPane cell, int row, int col) {
         for (PlayerColor color : PlayerColor.values()) {
             BoardCell start = boardModel.getSharedTrackCell(
                     boardModel.getStartSquare(color));
 
-            double cx = (start.col() + 0.5) * CELL_SIZE;
-            double cy = (start.row() + 0.5) * CELL_SIZE;
-            drawStar(gc, cx, cy);
+            if (start.row() == row && start.col() == col) {
+                Label marker = new Label("#");
+                marker.setMouseTransparent(true);
+                marker.setFont(Font.font(
+                        "Segoe UI", FontWeight.EXTRA_BOLD, 24));
+                marker.setTextFill(Color.WHITE);
+                marker.setEffect(new DropShadow(
+                        2.5, 0, 1, Color.rgb(60, 30, 50, 0.55)));
+                marker.getStyleClass().add("start-marker");
+                marker.setUserData("start-marker:" + color.name());
+                cell.getChildren().add(marker);
+            }
         }
-    }
-
-    /**
-     * Draws a legible five-point star inside a safe start square.
-     *
-     * @param gc board drawing surface
-     * @param cx star center X
-     * @param cy star center Y
-     */
-    private void drawStar(GraphicsContext gc, double cx, double cy) {
-        double[] xs = new double[10];
-        double[] ys = new double[10];
-
-        for (int i = 0; i < 10; i++) {
-            double angle = -Math.PI / 2 + i * Math.PI / 5;
-            double radius = i % 2 == 0 ? 10.5 : 4.6;
-            xs[i] = cx + Math.cos(angle) * radius;
-            ys[i] = cy + Math.sin(angle) * radius;
-        }
-
-        gc.setFill(Color.web("#FFFFFF"));
-        gc.fillPolygon(xs, ys, 10);
-        gc.setStroke(Color.rgb(66, 48, 65, 0.18));
-        gc.setLineWidth(0.7);
-        gc.strokePolygon(xs, ys, 10);
     }
 
     /**
@@ -408,6 +416,108 @@ public class EasyBoardView extends StackPane {
     }
 
     /**
+     * Reports whether a piece-movement animation is running.
+     *
+     * @return true while a piece is hopping across the board
+     */
+    public boolean isAnimating() {
+        return animating;
+    }
+
+    /**
+     * Animates a piece square by square after the Model has already
+     * moved it. The piece hops through every square of its path, so
+     * the number of hops always equals the die value (a release from
+     * the castle is one hop onto the # start square). The Model is
+     * never touched here; the animation only draws.
+     *
+     * @param gameState the game, already updated by the Model
+     * @param piece the piece that just moved
+     * @param fromProgress the piece's progress before the move
+     *        (-1 when it was in the castle)
+     * @param onFinished called once the piece has arrived
+     */
+    public void animateMove(
+            GameState gameState,
+            Piece piece,
+            int fromProgress,
+            Runnable onFinished) {
+
+        List<BoardCell> path = new ArrayList<>();
+
+        if (fromProgress < 0) {
+            path.add(getCastleCell(piece.getColor(), piece.getId()));
+        }
+
+        for (int p = Math.max(fromProgress, 0);
+                p <= piece.getProgress(); p++) {
+            path.add(gameState.getBoardCellAt(
+                    piece.getColor(), p).orElseThrow());
+        }
+
+        if (path.size() < 2 || animating) {
+            renderPieces(gameState);
+            if (onFinished != null) {
+                onFinished.run();
+            }
+            return;
+        }
+
+        animating = true;
+        hiddenPiece = piece;
+        renderPieces(gameState);
+
+        Circle flyer = createPieceGraphic(piece.getColor(), false);
+        flyer.setMouseTransparent(true);
+        flyer.setCenterX(centerX(path.get(0)));
+        flyer.setCenterY(centerY(path.get(0)));
+        flyer.setEffect(new DropShadow(
+                9, 0, 4, Color.rgb(70, 35, 55, 0.45)));
+        movingLayer.getChildren().add(flyer);
+
+        Timeline hop = new Timeline();
+        for (int k = 1; k < path.size(); k++) {
+            double t0 = (k - 1) * Motion.STEP_MILLIS;
+            double tm = t0 + Motion.STEP_MILLIS * 0.5;
+            double t1 = k * Motion.STEP_MILLIS;
+            BoardCell cell = path.get(k);
+
+            // lift in the middle of each hop, land on the next square
+            hop.getKeyFrames().addAll(
+                    new KeyFrame(Duration.millis(tm),
+                            new KeyValue(flyer.scaleXProperty(), 1.32),
+                            new KeyValue(flyer.scaleYProperty(), 1.32)),
+                    new KeyFrame(Duration.millis(t1),
+                            new KeyValue(flyer.centerXProperty(),
+                                    centerX(cell), Interpolator.EASE_BOTH),
+                            new KeyValue(flyer.centerYProperty(),
+                                    centerY(cell), Interpolator.EASE_BOTH),
+                            new KeyValue(flyer.scaleXProperty(), 1.0),
+                            new KeyValue(flyer.scaleYProperty(), 1.0)));
+        }
+
+        hop.setRate(Motion.speed());
+        hop.setOnFinished(event -> {
+            movingLayer.getChildren().remove(flyer);
+            hiddenPiece = null;
+            animating = false;
+            renderPieces(lastState);
+            if (onFinished != null) {
+                onFinished.run();
+            }
+        });
+        hop.play();
+    }
+
+    private static double centerX(BoardCell cell) {
+        return (cell.col() + 0.5) * CELL_SIZE;
+    }
+
+    private static double centerY(BoardCell cell) {
+        return (cell.row() + 0.5) * CELL_SIZE;
+    }
+
+    /**
      * Registers the piece selection callback.
      */
     public void setOnPieceSelected(Consumer<Piece> handler) {
@@ -437,6 +547,8 @@ public class EasyBoardView extends StackPane {
                     "Game state cannot be null.");
         }
 
+        lastState = gameState;
+
         // Remove previous pieces, preserving arrows.
         for (StackPane[] row : cells) {
             for (StackPane cell : row) {
@@ -453,6 +565,11 @@ public class EasyBoardView extends StackPane {
         for (PlayerEntry player : gameState.getPlayers()) {
 
             for (Piece piece : gameState.getPieces(player)) {
+
+                // The animation draws this piece while it moves.
+                if (piece == hiddenPiece) {
+                    continue;
+                }
 
                 BoardCell position;
 

@@ -92,8 +92,8 @@ public final class GameDialog {
     public static boolean confirmLeaveGame(Window owner) {
         return show(owner, Type.CONFIRM,
                 "Leave this game?",
-                "Your current game progress will be lost. "
-                + "Are you sure you want to return to the Main Menu?");
+                "Your game progress will be lost. "
+                + "Return to the main menu anyway?");
     }
 
     /**

@@ -211,22 +211,53 @@ public class GameState {
 
         requireOwnedPiece(piece);
 
-        PlayerColor color = piece.getColor();
+        if (piece.isInCastle()) {
+            return Optional.empty();
+        }
+
+        return getBoardCellAt(piece.getColor(), piece.getProgress());
+    }
+
+    /**
+     * Returns the board cell for a given progress of one color.
+     * The View uses this to animate a piece through every square
+     * of its path, so each step is shown as one real square.
+     *
+     * Progress 0 is the start square (#), progress up to the
+     * entry steps stays on the shared track, and higher values
+     * walk the six home-path squares. The finish is the last
+     * home-path square.
+     *
+     * @param color a color in this game
+     * @param progress steps from the start square, 0 or more
+     * @return the cell, or empty for progress below 0
+     * @throws IllegalArgumentException if the color is not in this
+     *         game or the progress is beyond the finish
+     */
+    public Optional<BoardCell> getBoardCellAt(PlayerColor color,
+                                              int progress) {
+
+        int finish = getFinishSteps(color);   // validates the color
+
+        if (progress < 0) {
+            return Optional.empty();
+        }
+
+        if (progress > finish) {
+            throw new IllegalArgumentException(
+                    "Progress is beyond the finish square");
+        }
+
         int entry = entrySteps.get(color);
 
-        return switch (piece.getState()) {
-            case CASTLE -> Optional.empty();
-            case TRACK -> Optional.of(board.getSharedTrackCell(
-                    (board.getStartSquare(color) +
-                            piece.getProgress())
+        if (progress <= entry) {
+            return Optional.of(board.getSharedTrackCell(
+                    (board.getStartSquare(color) + progress)
                             % EasyBoard.TRACK_SIZE));
-            case HOME_PATH -> Optional.of(
-                    board.getHomePathCells(color).get(
-                            piece.getProgress() - entry - 1));
-            case FINISHED -> Optional.of(
-                    board.getHomePathCells(color).get(
-                            EasyBoard.HOME_PATH_SIZE - 1));
-        };
+        }
+
+        return Optional.of(
+                board.getHomePathCells(color).get(progress - entry - 1));
     }
 
     // ------------------------------------------------------
