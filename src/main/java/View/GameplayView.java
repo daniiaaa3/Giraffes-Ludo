@@ -17,6 +17,7 @@ import javafx.scene.control.Label;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.util.Duration;
@@ -49,6 +50,7 @@ public class GameplayView {
     private final Label diceLabel;
 
     private final Button rollButton;
+    private final Button mainMenuButton;
 
     private final EasyBoardView boardView;
     private final DiceView graphicalDice;
@@ -84,13 +86,26 @@ public class GameplayView {
                 + "-fx-text-fill: #9D5279;"
         );
 
-        HBox topBar = new HBox(
-                35,
-                currentPlayerLabel,
-                timerLabel
-        );
+        // Navigation remains disabled until a Controller
+        // registers the application-level return action.
+        mainMenuButton = new Button("Main Menu");
+        mainMenuButton.getStyleClass().add("gameplay-menu-button");
+        mainMenuButton.setMinWidth(120);
+        mainMenuButton.setDisable(true);
 
-        topBar.setAlignment(Pos.CENTER);
+        HBox gameStatus = new HBox(
+                28, currentPlayerLabel, timerLabel);
+        gameStatus.setAlignment(Pos.CENTER_LEFT);
+
+        // Spacer keeps navigation on the right without
+        // changing the board or dice layout.
+        Region navigationSpacer = new Region();
+        HBox.setHgrow(navigationSpacer, Priority.ALWAYS);
+
+        HBox topBar = new HBox(
+                16, gameStatus, navigationSpacer, mainMenuButton);
+
+        topBar.setAlignment(Pos.CENTER_LEFT);
         topBar.setPadding(new Insets(14, 20, 14, 20));
 
         topBar.setStyle(
@@ -344,6 +359,31 @@ public class GameplayView {
      */
     public void stopTimer() {
         timer.stop();
+    }
+
+    /**
+     * Temporarily pauses elapsed time during a leave-game
+     * confirmation, without resetting the timer.
+     */
+    public void pauseTimer() {
+        timer.pause();
+    }
+
+    /**
+     * Resumes elapsed time if the player stays in the game.
+     */
+    public void resumeTimer() {
+        timer.play();
+    }
+
+    /**
+     * Returns the gameplay navigation button. The Controller
+     * attaches its action so this View stays presentation-only.
+     *
+     * @return button for requesting a return to the main menu
+     */
+    public Button getMainMenuButton() {
+        return mainMenuButton;
     }
 
     /**
