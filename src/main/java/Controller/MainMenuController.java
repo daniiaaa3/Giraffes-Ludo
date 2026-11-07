@@ -32,11 +32,11 @@ public class MainMenuController {
         view.getHistoryButton().setOnAction(event -> GameDialog.showInfo(
                 view.getHistoryButton().getScene().getWindow(),
                 "Game History",
-                "Game History is planned for Iteration 3."));
+                "Game history is coming soon"));
 
         view.getQuestionsButton().setOnAction(event -> GameDialog.showInfo(
                 view.getQuestionsButton().getScene().getWindow(),
                 "Question Management",
-                "Question Management is planned for Iteration 3."));
+                "Question management is coming soon"));
     }
 }

@@ -20,6 +20,7 @@ import javafx.scene.control.TextField;
 import javafx.scene.control.Toggle;
 import javafx.scene.control.ToggleButton;
 import javafx.scene.control.ToggleGroup;
+import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
@@ -63,7 +64,7 @@ public class GameSetupView {
             "player-status-green", "player-status-yellow"
     };
 
-    private final StackPane root;
+    private final BorderPane root;
     private final ComboBox<Integer> playerCountBox;
     private final List<TextField> nameFields;
     private final List<ToggleGroup> colorGroups;
@@ -86,10 +87,10 @@ public class GameSetupView {
         Label title = new Label("SET UP PLAYERS");
         title.getStyleClass().addAll("menu-title", "setup-title");
 
-        Label subtitle = new Label("Choose names and colors for your next match.");
+        Label subtitle = new Label("Choose a name and color for each player");
         subtitle.getStyleClass().addAll("menu-subtitle", "setup-subtitle");
 
-        VBox heading = new VBox(5, eyebrow, title, subtitle);
+        VBox heading = new VBox(2, eyebrow, title, subtitle);
         heading.setAlignment(Pos.CENTER_LEFT);
         HBox.setHgrow(heading, Priority.ALWAYS);
 
@@ -113,7 +114,7 @@ public class GameSetupView {
         // A fixed two-column grid keeps the layout predictable for 2-4 players.
         GridPane playersSection = new GridPane();
         playersSection.setHgap(14);
-        playersSection.setVgap(14);
+        playersSection.setVgap(12);
         playersSection.setMaxWidth(Double.MAX_VALUE);
 
         ColumnConstraints leftColumn = new ColumnConstraints();
@@ -136,7 +137,7 @@ public class GameSetupView {
             GridPane.setFillWidth(playerCard, true);
         }
 
-        Label hint = new Label("Each player needs a unique name and color.");
+        Label hint = new Label("Each player needs a unique name and color");
         hint.getStyleClass().add("setup-hint");
 
         backButton = new Button("Back to Menu");
@@ -157,7 +158,7 @@ public class GameSetupView {
         footer.setAlignment(Pos.CENTER_LEFT);
         HBox.setHgrow(hint, Priority.ALWAYS);
 
-        VBox card = new VBox(19, header, playersSection, footer);
+        VBox card = new VBox(12, header, playersSection);
         card.setAlignment(Pos.TOP_CENTER);
         card.setPrefWidth(740);
         card.setMaxWidth(780);
@@ -166,16 +167,26 @@ public class GameSetupView {
         // Center the lobby when it fits, and scroll if four players need space.
         VBox page = new VBox(card);
         page.setAlignment(Pos.CENTER);
-        page.setPadding(new Insets(22));
+        page.setPadding(new Insets(14, 22, 8, 22));
 
         ScrollPane scrollPane = new ScrollPane(page);
         scrollPane.setFitToWidth(true);
+        scrollPane.setFitToHeight(true);
         scrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
         scrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
         scrollPane.getStyleClass().add("setup-scroll");
-        page.minHeightProperty().bind(scrollPane.heightProperty().subtract(2));
 
-        root = new StackPane(scrollPane);
+        // The action buttons stay pinned below the scrolling area, so
+        // Back and Start are always visible, even with four players on
+        // a 1280 x 720 window.
+        footer.setMaxWidth(780);
+        footer.getStyleClass().add("setup-footer-bar");
+        StackPane footerHolder = new StackPane(footer);
+        footerHolder.setPadding(new Insets(0, 22, 18, 22));
+
+        root = new BorderPane();
+        root.setCenter(scrollPane);
+        root.setBottom(footerHolder);
         root.getStyleClass().add("menu-root");
 
         playerCountBox.setOnAction(event -> updateVisibleRows());
@@ -234,7 +245,7 @@ public class GameSetupView {
 
         GridPane colorGrid = new GridPane();
         colorGrid.setHgap(8);
-        colorGrid.setVgap(8);
+        colorGrid.setVgap(6);
         colorGrid.setMaxWidth(Double.MAX_VALUE);
 
         ColumnConstraints leftColor = new ColumnConstraints();
@@ -257,7 +268,7 @@ public class GameSetupView {
         }
 
         VBox playerCard = new VBox(
-                10, playerHeader, nameField, chooseLabel, colorGrid);
+                7, playerHeader, nameField, chooseLabel, colorGrid);
         playerCard.getStyleClass().add("player-panel");
         playerCard.setMinWidth(290);
         playerCard.setMaxWidth(Double.MAX_VALUE);
@@ -292,7 +303,7 @@ public class GameSetupView {
         tile.getStyleClass().addAll(
                 "color-choice", "color-choice-" + color.name().toLowerCase());
         tile.setMaxWidth(Double.MAX_VALUE);
-        tile.setMinHeight(41);
+        tile.setMinHeight(35);
         tile.setAlignment(Pos.CENTER_LEFT);
 
         Circle swatch = new Circle(8, getColorPaint(color));

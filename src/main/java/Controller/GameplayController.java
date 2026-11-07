@@ -1,15 +1,21 @@
-
 package Controller;
 
+import java.util.List;
+
+import Model.GameSetup.PlayerEntry;
 import Model.GameState;
 import Model.Piece;
 import Model.StepsDice;
-import Model.GameSetup.PlayerEntry;
 import Model.TurnRollRules.Outcome;
 import View.GameplayView;
 
 /**
  * Connects the Gameplay UI with the game rules.
+ *
+ * The Model (GameState) decides everything: legal pieces, how far
+ * a piece moves, bonus rolls and turn changes. This Controller
+ * only passes user actions to the Model, plays the animations and
+ * chooses the player-facing message.
  *
  * MVC Component: Controller
  * Iteration: 1
@@ -52,14 +58,13 @@ public class GameplayController {
 
         if (view == null || gameState == null || dice == null) {
             throw new IllegalArgumentException(
-                    "Gameplay components cannot be null.");
+                    "Gameplay components cannot be null");
         }
 
         this.view = view;
         this.gameState = gameState;
         this.dice = dice;
 
-        // Connect UI actions to the controller.
         view.getRollButton().setOnAction(
                 event -> handleRoll());
 
@@ -72,11 +77,9 @@ public class GameplayController {
                     event -> onReturnToMenu.run());
         }
 
-        // Display the initial game state.
         refreshView();
         view.showGameMessage(
-                gameState.getActivePlayer().name()
-                + " starts the game!");
+                gameState.getActivePlayer().name() + " goes first");
     }
 
     /**
@@ -84,16 +87,21 @@ public class GameplayController {
      */
     private void handleRoll() {
 
+        // A roll is ignored while a piece is still hopping.
+        if (view.isAnimating()) {
+            return;
+        }
+
         if (!gameState.isAwaitingRoll()) {
-            view.showGameMessage(
-                    "Select a highlighted piece first.");
+            view.showGameMessage("Choose a highlighted piece first");
             return;
         }
 
         PlayerEntry player = gameState.getActivePlayer();
         int result = dice.roll();
 
-        // Play the animation first.
+        view.showExtraRoll(false);
+
         view.animateDiceRoll(result, () -> {
 
             // Check move availability before the roll changes
@@ -105,17 +113,22 @@ public class GameplayController {
                     gameState.recordRoll(player, result);
 
             view.setDiceResult(result);
-            handleRollOutcome(outcome, player, hasLegalMove);
+            handleRollOutcome(outcome, player, hasLegalMove, result);
 
-            // Refresh the board and button state.
             refreshView();
         });
     }
 
     /**
-     * Moves the selected legal piece.
+     * Moves the selected legal piece, one square at a time.
      */
     private void handlePieceSelection(Piece piece) {
+
+        // Ignore clicks while a piece is already moving, so a
+        // double-click can never move a piece twice.
+        if (view.isAnimating()) {
+            return;
+        }
 
         if (!gameState.isAwaitingMove()) {
             return;
@@ -126,11 +139,19 @@ public class GameplayController {
         }
 
         PlayerEntry player = gameState.getActivePlayer();
+        int fromProgress = piece.getProgress();
 
+        // The Model moves the piece immediately and exactly.
         Outcome outcome = gameState.movePiece(player, piece);
 
-        handleOutcome(outcome);
-        refreshView();
+        // Lock input until the hop animation has finished.
+        view.setSelectablePieces(List.of());
+        view.setRollEnabled(false);
+
+        view.animatePieceMove(gameState, piece, fromProgress, () -> {
+            handleOutcome(outcome);
+            refreshView();
+        });
     }
 
     /**
@@ -144,14 +165,15 @@ public class GameplayController {
      * @param outcome result produced by the GameState
      * @param roller the player who rolled the die
      * @param hasLegalMove whether that roll could move a piece
+     * @param rolled the die value
      */
     private void handleRollOutcome(
             Outcome outcome,
             PlayerEntry roller,
-            boolean hasLegalMove) {
+            boolean hasLegalMove,
+            int rolled) {
 
         // A third consecutive six always forfeits the turn.
-        // It must not be displayed as an ordinary no-move roll.
         if (outcome == Outcome.THIRD_SIX_FORFEIT) {
             handleOutcome(outcome);
             return;
@@ -159,23 +181,50 @@ public class GameplayController {
 
         if (!hasLegalMove) {
             if (outcome == Outcome.TURN_PASSED) {
-                view.showGameMessage(
-                        "No available moves for " + roller.name()
-                        + ". "
-                        + gameState.getActivePlayer().name()
-                        + " plays next.");
+                view.showExtraRoll(false);
+                view.showGameMessage(noMoveMessage(roller, rolled));
                 return;
             }
 
             if (outcome == Outcome.BONUS_ROLL) {
+                view.showExtraRoll(true);
                 view.showGameMessage(
                         "No available moves for " + roller.name()
-                        + ". Bonus roll! Roll again.");
+                        + ", but a 6 earns an extra roll");
                 return;
             }
         }
 
+        if (outcome == Outcome.MOVE_REQUIRED && rolled == 6
+                && hasPieceInCastle(roller)) {
+            view.showGameMessage(
+                    "You rolled a 6, so choose a piece to release or move");
+            return;
+        }
+
         handleOutcome(outcome);
+    }
+
+    private String noMoveMessage(PlayerEntry roller, int rolled) {
+        String next = gameState.getActivePlayer().name();
+
+        if (rolled != 6 && !hasPieceOnBoard(roller)) {
+            return roller.name() + " needs a 6 to release a piece, so it is "
+                    + next + "'s turn";
+        }
+
+        return "No available moves for " + roller.name()
+                + ", so it is " + next + "'s turn";
+    }
+
+    private boolean hasPieceInCastle(PlayerEntry player) {
+        return gameState.getPieces(player).stream()
+                .anyMatch(Piece::isInCastle);
+    }
+
+    private boolean hasPieceOnBoard(PlayerEntry player) {
+        return gameState.getPieces(player).stream()
+                .anyMatch(p -> !p.isInCastle() && !p.isFinished());
     }
 
     /**
@@ -186,32 +235,23 @@ public class GameplayController {
      */
     private void handleOutcome(Outcome outcome) {
 
+        view.showExtraRoll(outcome == Outcome.BONUS_ROLL);
+
         switch (outcome) {
 
-            case MOVE_REQUIRED -> {
-                view.showGameMessage(
-                        "Select a highlighted piece to move.");
-            }
+            case MOVE_REQUIRED -> view.showGameMessage(
+                    "Choose a highlighted piece to move");
 
-            case BONUS_ROLL -> {
-                view.showGameMessage(
-                        "Bonus roll! Roll the dice again.");
-            }
+            case BONUS_ROLL -> view.showGameMessage(
+                    "Extra roll! Roll the dice again");
 
-            case TURN_PASSED -> {
-                view.showGameMessage(
-                        "Turn passed to "
-                        + gameState.getActivePlayer().name()
-                        + ".");
-            }
+            case TURN_PASSED -> view.showGameMessage(
+                    gameState.getActivePlayer().name() + "'s turn");
 
-            case THIRD_SIX_FORFEIT -> {
-                view.showGameMessage(
-                        "Three consecutive sixes! "
-                        + "Turn forfeited. "
-                        + gameState.getActivePlayer().name()
-                        + " plays next.");
-            }
+            case THIRD_SIX_FORFEIT -> view.showGameMessage(
+                    "Three sixes in a row, so the turn is lost. "
+                    + gameState.getActivePlayer().name()
+                    + " plays next");
         }
     }
 

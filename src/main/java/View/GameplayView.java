@@ -1,9 +1,10 @@
-
 package View;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
+import Model.GameSetup.PlayerEntry;
 import Model.GameState;
 import Model.Piece;
 
@@ -20,20 +21,18 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.Circle;
 import javafx.util.Duration;
 
 /**
  * Main gameplay screen for Educational Ludo.
  *
- * Displays:
- * - Easy board and player pieces
- * - Active player
- * - Elapsed game time
- * - Animated graphical die
- * - Roll button
- * - Game feedback messages
+ * Shows the board and pieces, whose turn it is (with a roster of
+ * all players), the elapsed time, the animated die with its Roll
+ * button, an "Extra roll" badge, and short game messages.
  *
- * The layout adapts to the available window size.
+ * The layout adapts to the window size and fits 1280 x 720.
  *
  * MVC Component: View
  * Iteration: 1
@@ -41,16 +40,22 @@ import javafx.util.Duration;
 public class GameplayView {
 
     private static final double BOARD_SIZE_PIXELS = 525;
+    private static final double MAX_BOARD_SCALE = 1.6;
 
     private final BorderPane root;
 
     private final Label currentPlayerLabel;
+    private final Circle currentPlayerDot;
     private final Label timerLabel;
     private final Label messageLabel;
     private final Label diceLabel;
+    private final Label extraRollBadge;
 
     private final Button rollButton;
     private final Button mainMenuButton;
+
+    private final VBox rosterBox;
+    private final List<RosterRow> rosterRows = new ArrayList<>();
 
     private final EasyBoardView boardView;
     private final DiceView graphicalDice;
@@ -58,242 +63,159 @@ public class GameplayView {
     private int elapsedSeconds = 0;
     private final Timeline timer;
 
+    /** One player card in the roster. */
+    private static final class RosterRow {
+        final PlayerEntry player;
+        final HBox card;
+        final Label turnTag;
+        final String hex;
+
+        RosterRow(PlayerEntry player, HBox card, Label turnTag, String hex) {
+            this.player = player;
+            this.card = card;
+            this.turnTag = turnTag;
+            this.hex = hex;
+        }
+    }
+
     public GameplayView() {
 
         root = new BorderPane();
-        root.getStyleClass().add("menu-root");
+        root.getStyleClass().addAll("menu-root", "gameplay-root");
+        root.setPadding(new Insets(14, 20, 14, 20));
 
-        root.setPadding(new Insets(12, 18, 12, 18));
+        // ---------------------------------------------- top bar
+        currentPlayerDot = new Circle(11, Color.web("#E5A0BE"));
+        currentPlayerDot.setStroke(Color.WHITE);
+        currentPlayerDot.setStrokeWidth(2.5);
 
-        // -----------------------------------------
-        // TOP - Player and timer
-        // -----------------------------------------
+        currentPlayerLabel = new Label("Getting ready");
+        currentPlayerLabel.getStyleClass().add("turn-label");
 
-        currentPlayerLabel =
-                new Label("Current Player: --");
+        HBox turnChip = new HBox(10, currentPlayerDot, currentPlayerLabel);
+        turnChip.setAlignment(Pos.CENTER_LEFT);
+        turnChip.getStyleClass().add("turn-chip");
 
-        currentPlayerLabel.setStyle(
-                "-fx-font-size: 21px;"
-                + "-fx-font-weight: bold;"
-                + "-fx-text-fill: #542844;"
-        );
+        timerLabel = new Label("Time 00:00");
+        timerLabel.getStyleClass().add("timer-label");
 
-        timerLabel = new Label("Time: 00:00");
+        HBox timerChip = new HBox(timerLabel);
+        timerChip.setAlignment(Pos.CENTER);
+        timerChip.getStyleClass().add("timer-chip");
 
-        timerLabel.setStyle(
-                "-fx-font-size: 18px;"
-                + "-fx-font-weight: bold;"
-                + "-fx-text-fill: #9D5279;"
-        );
-
-        // Navigation remains disabled until a Controller
-        // registers the application-level return action.
+        // Navigation stays disabled until a Controller registers
+        // the application-level return action.
         mainMenuButton = new Button("Main Menu");
         mainMenuButton.getStyleClass().add("gameplay-menu-button");
-        mainMenuButton.setMinWidth(120);
+        mainMenuButton.setMinWidth(130);
         mainMenuButton.setDisable(true);
+        UiEffects.interactive(mainMenuButton);
 
-        HBox gameStatus = new HBox(
-                28, currentPlayerLabel, timerLabel);
-        gameStatus.setAlignment(Pos.CENTER_LEFT);
-
-        // Spacer keeps navigation on the right without
-        // changing the board or dice layout.
         Region navigationSpacer = new Region();
         HBox.setHgrow(navigationSpacer, Priority.ALWAYS);
 
         HBox topBar = new HBox(
-                16, gameStatus, navigationSpacer, mainMenuButton);
-
+                14, turnChip, timerChip, navigationSpacer, mainMenuButton);
         topBar.setAlignment(Pos.CENTER_LEFT);
-        topBar.setPadding(new Insets(14, 20, 14, 20));
-
-        topBar.setStyle(
-                "-fx-background-color: rgba(255,255,255,0.85);"
-                + "-fx-background-radius: 20;"
-                + "-fx-border-color: #F1D6E2;"
-                + "-fx-border-radius: 20;"
-        );
-
+        topBar.getStyleClass().add("gameplay-top-bar");
         root.setTop(topBar);
+        BorderPane.setMargin(topBar, new Insets(0, 0, 12, 0));
 
-        BorderPane.setMargin(
-                topBar,
-                new Insets(0, 0, 10, 0)
-        );
+        // ------------------------------------- left: player roster
+        Label rosterTitle = new Label("Players");
+        rosterTitle.getStyleClass().add("panel-title");
 
-        // -----------------------------------------
-        // CENTER - Responsive board
-        // -----------------------------------------
+        rosterBox = new VBox(10);
+        rosterBox.setAlignment(Pos.TOP_CENTER);
 
+        VBox rosterPanel = new VBox(14, rosterTitle, rosterBox);
+        rosterPanel.setAlignment(Pos.TOP_CENTER);
+        rosterPanel.getStyleClass().add("side-panel");
+        rosterPanel.setMinWidth(210);
+        rosterPanel.setPrefWidth(210);
+        rosterPanel.setMaxWidth(210);
+
+        // ------------------------------------------- center: board
         boardView = new EasyBoardView();
 
         StackPane boardViewport = new StackPane();
-
         boardViewport.setMinSize(0, 0);
         boardViewport.setAlignment(Pos.CENTER);
 
-        // We position and resize the board ourselves.
+        // The board is positioned and scaled by this view.
         boardView.setManaged(false);
-
         boardViewport.getChildren().add(boardView);
 
         boardViewport.widthProperty().addListener(
                 (observable, oldValue, newValue) ->
-                        fitBoardToViewport(boardViewport)
-        );
-
+                        fitBoardToViewport(boardViewport));
         boardViewport.heightProperty().addListener(
                 (observable, oldValue, newValue) ->
-                        fitBoardToViewport(boardViewport)
-        );
+                        fitBoardToViewport(boardViewport));
 
-        // -----------------------------------------
-        // RIGHT - Dice and Roll button
-        // -----------------------------------------
-
-        Label diceTitle = new Label("STEPS DICE");
-
-        diceTitle.setStyle(
-                "-fx-font-size: 17px;"
-                + "-fx-font-weight: bold;"
-                + "-fx-text-fill: #713852;"
-        );
+        // --------------------------------------- right: dice card
+        Label diceTitle = new Label("Dice");
+        diceTitle.getStyleClass().add("panel-title");
 
         graphicalDice = new DiceView();
+        graphicalDice.setValue(1);
 
         diceLabel = new Label("Ready to roll");
+        diceLabel.getStyleClass().add("dice-caption");
 
-        diceLabel.setStyle(
-                "-fx-font-size: 14px;"
-                + "-fx-text-fill: #9D5279;"
-                + "-fx-font-weight: bold;"
-        );
+        extraRollBadge = new Label("★  Extra roll");
+        extraRollBadge.getStyleClass().add("extra-roll-badge");
+        extraRollBadge.setVisible(false);
+        extraRollBadge.setManaged(false);
 
         rollButton = new Button("Roll Dice");
-
-        rollButton.setPrefSize(150, 54);
-        rollButton.setMinSize(150, 54);
-        rollButton.setMaxWidth(150);
-
-        // Use a dedicated button design to avoid
-        // the wide Main Menu button CSS settings.
-        rollButton.setStyle(
-                "-fx-background-color: #E5A0BE;"
-                + "-fx-background-radius: 17;"
-                + "-fx-border-color: #A14F7D;"
-                + "-fx-border-width: 2;"
-                + "-fx-border-radius: 17;"
-                + "-fx-text-fill: #512942;"
-                + "-fx-font-size: 17px;"
-                + "-fx-font-weight: bold;"
-                + "-fx-cursor: hand;"
-        );
+        rollButton.getStyleClass().add("roll-button");
+        rollButton.setPrefSize(160, 56);
+        rollButton.setMinSize(160, 56);
+        rollButton.setMaxWidth(160);
+        UiEffects.interactive(rollButton);
 
         VBox diceSection = new VBox(
-                16,
-                diceTitle,
-                graphicalDice,
-                diceLabel,
-                rollButton
-        );
-
+                16, diceTitle, graphicalDice, diceLabel,
+                extraRollBadge, rollButton);
         diceSection.setAlignment(Pos.CENTER);
-        diceSection.setPadding(new Insets(20, 10, 20, 10));
-
-        diceSection.setMinWidth(175);
-        diceSection.setPrefWidth(175);
-        diceSection.setMaxWidth(175);
-
-        diceSection.setStyle(
-                "-fx-background-color: rgba(255,255,255,0.83);"
-                + "-fx-background-radius: 24;"
-                + "-fx-border-color: #F1D6E2;"
-                + "-fx-border-radius: 24;"
-                + "-fx-border-width: 1;"
-        );
-
-        // -----------------------------------------
-        // MAIN CONTENT - Board + Dice
-        // -----------------------------------------
+        diceSection.getStyleClass().add("side-panel");
+        diceSection.setMinWidth(210);
+        diceSection.setPrefWidth(210);
+        diceSection.setMaxWidth(210);
 
         HBox gameArea = new HBox(
-                18,
-                boardViewport,
-                diceSection
-        );
-
+                20, rosterPanel, boardViewport, diceSection);
         gameArea.setAlignment(Pos.CENTER);
         gameArea.setMinHeight(0);
-
-        HBox.setHgrow(
-                boardViewport,
-                Priority.ALWAYS
-        );
-
+        HBox.setHgrow(boardViewport, Priority.ALWAYS);
         root.setCenter(gameArea);
 
-        // -----------------------------------------
-        // BOTTOM - Game feedback messages
-        // -----------------------------------------
-
-        messageLabel = new Label(
-                "Welcome to Educational Ludo!"
-        );
-
-        messageLabel.setStyle(
-                "-fx-font-size: 16px;"
-                + "-fx-text-fill: #D63384;"
-                + "-fx-font-weight: bold;"
-        );
-
+        // ------------------------------------- bottom: messages
+        messageLabel = new Label("Welcome to Giraffes Ludo");
+        messageLabel.getStyleClass().add("message-text");
         messageLabel.setWrapText(true);
         messageLabel.setAlignment(Pos.CENTER);
         messageLabel.setMaxWidth(Double.MAX_VALUE);
 
         HBox messageBox = new HBox(messageLabel);
-
         messageBox.setAlignment(Pos.CENTER);
-        messageBox.setPadding(
-                new Insets(12, 20, 12, 20)
-        );
-
-        messageBox.setStyle(
-                "-fx-background-color: rgba(255,255,255,0.85);"
-                + "-fx-background-radius: 18;"
-                + "-fx-border-color: #F1D6E2;"
-                + "-fx-border-radius: 18;"
-        );
-
+        messageBox.getStyleClass().add("message-bar");
         root.setBottom(messageBox);
+        BorderPane.setMargin(messageBox, new Insets(12, 0, 0, 0));
 
-        BorderPane.setMargin(
-                messageBox,
-                new Insets(10, 0, 0, 0)
-        );
-
-        // -----------------------------------------
-        // TIMER
-        // -----------------------------------------
-
-        timer = new Timeline(
-                new KeyFrame(
-                        Duration.seconds(1),
-                        event -> updateTimer()
-                )
-        );
-
+        // ------------------------------------------------- timer
+        timer = new Timeline(new KeyFrame(
+                Duration.seconds(1), event -> updateTimer()));
         timer.setCycleCount(Timeline.INDEFINITE);
     }
 
+    // ------------------------------------------------------ layout
     /**
-     * Fits the board inside the available area.
-     *
-     * The board is scaled visually without
-     * changing its logical cell coordinates.
+     * Fits the board inside the available area. The board is only
+     * scaled visually; its logical cell coordinates never change.
      */
-    private void fitBoardToViewport(
-            StackPane viewport) {
+    private void fitBoardToViewport(StackPane viewport) {
 
         double availableWidth = viewport.getWidth();
         double availableHeight = viewport.getHeight();
@@ -302,78 +224,54 @@ public class GameplayView {
             return;
         }
 
-        double widthScale =
-                availableWidth / BOARD_SIZE_PIXELS;
+        double scale = Math.min(MAX_BOARD_SCALE, Math.min(
+                availableWidth / BOARD_SIZE_PIXELS,
+                availableHeight / BOARD_SIZE_PIXELS));
 
-        double heightScale =
-                availableHeight / BOARD_SIZE_PIXELS;
-
-        double scale = Math.min(
-                1.0,
-                Math.min(widthScale, heightScale)
-        );
-
-        boardView.resize(
-                BOARD_SIZE_PIXELS,
-                BOARD_SIZE_PIXELS
-        );
-
+        boardView.resize(BOARD_SIZE_PIXELS, BOARD_SIZE_PIXELS);
         boardView.setScaleX(scale);
         boardView.setScaleY(scale);
 
-        // Center the scaled board in its viewport.
         boardView.relocate(
                 (availableWidth - BOARD_SIZE_PIXELS) / 2.0,
-                (availableHeight - BOARD_SIZE_PIXELS) / 2.0
-        );
+                (availableHeight - BOARD_SIZE_PIXELS) / 2.0);
     }
 
-    /**
-     * Updates elapsed game time.
-     */
+    // ------------------------------------------------------ timer
     private void updateTimer() {
-
         elapsedSeconds++;
-
-        int minutes = elapsedSeconds / 60;
-        int seconds = elapsedSeconds % 60;
-
-        timerLabel.setText(
-                String.format(
-                        "Time: %02d:%02d",
-                        minutes,
-                        seconds
-                )
-        );
+        timerLabel.setText(String.format("Time %02d:%02d",
+                elapsedSeconds / 60, elapsedSeconds % 60));
     }
 
-    /**
-     * Starts the game timer.
-     */
+    /** Starts the game timer. */
     public void startTimer() {
         timer.play();
     }
 
-    /**
-     * Stops the game timer.
-     */
+    /** Stops the game timer. */
     public void stopTimer() {
         timer.stop();
     }
 
-    /**
-     * Temporarily pauses elapsed time during a leave-game
-     * confirmation, without resetting the timer.
-     */
+    /** Pauses elapsed time during a leave-game confirmation. */
     public void pauseTimer() {
         timer.pause();
     }
 
-    /**
-     * Resumes elapsed time if the player stays in the game.
-     */
+    /** Resumes elapsed time if the player stays in the game. */
     public void resumeTimer() {
         timer.play();
+    }
+
+    // -------------------------------------------- status and input
+    /**
+     * Reports whether a piece-movement animation is running.
+     *
+     * @return true while the board animates a piece
+     */
+    public boolean isAnimating() {
+        return boardView.isAnimating();
     }
 
     /**
@@ -387,92 +285,193 @@ public class GameplayView {
     }
 
     /**
-     * Updates the active player display.
+     * Shows whose turn it is.
+     *
+     * @param playerName the active player's name
      */
     public void setCurrentPlayer(String playerName) {
-
-        currentPlayerLabel.setText(
-                "Current Player: " + playerName
-        );
+        currentPlayerLabel.setText(playerName + "'s turn");
     }
 
     /**
-     * Displays game feedback.
+     * Displays a short game message.
+     *
+     * @param message the text to show
      */
     public void showGameMessage(String message) {
-
         messageLabel.setText(message);
     }
 
-    /**
-     * Returns the Roll Dice button.
-     */
+    /** @return the Roll Dice button */
     public Button getRollButton() {
-
         return rollButton;
     }
 
     /**
-     * Updates the displayed dice result.
+     * Shows the die result under the die.
+     *
+     * @param result the rolled value
      */
     public void setDiceResult(int result) {
-
-        diceLabel.setText("Rolled: " + result);
+        diceLabel.setText("Rolled " + result);
     }
 
     /**
-     * Refreshes the pieces displayed on the board.
+     * Shows or hides the "Extra roll" badge next to the die.
+     *
+     * @param visible true while the same player rolls again
+     */
+    public void showExtraRoll(boolean visible) {
+        extraRollBadge.setVisible(visible);
+        extraRollBadge.setManaged(visible);
+    }
+
+    /**
+     * Refreshes the pieces on the board and the player roster.
+     *
+     * @param gameState the current game
      */
     public void updateBoard(GameState gameState) {
-
         boardView.renderPieces(gameState);
+        updateRoster(gameState);
+    }
+
+    /**
+     * Hops a piece square by square after the Model moved it.
+     *
+     * @param gameState the game, already updated by the Model
+     * @param piece the piece that moved
+     * @param fromProgress progress before the move (-1 = castle)
+     * @param onFinished called when the piece has arrived
+     */
+    public void animatePieceMove(
+            GameState gameState,
+            Piece piece,
+            int fromProgress,
+            Runnable onFinished) {
+        boardView.animateMove(gameState, piece, fromProgress, onFinished);
     }
 
     /**
      * Registers piece selection from the board.
+     *
+     * @param handler called with the clicked piece
      */
-    public void setOnPieceSelected(
-            Consumer<Piece> handler) {
-
+    public void setOnPieceSelected(Consumer<Piece> handler) {
         boardView.setOnPieceSelected(handler);
     }
 
     /**
-     * Sets pieces that can be selected.
+     * Sets the pieces that can be selected.
+     *
+     * @param pieces the legal pieces
      */
     public void setSelectablePieces(List<Piece> pieces) {
-
         boardView.setSelectablePieces(pieces);
     }
 
     /**
      * Enables or disables the Roll Dice button.
+     *
+     * @param enabled true to allow rolling
      */
     public void setRollEnabled(boolean enabled) {
-
         rollButton.setDisable(!enabled);
     }
 
     /**
-     * Animates the die before applying the result.
+     * Animates the die before the result is applied.
+     *
+     * @param value the final die value
+     * @param onFinished called when the animation ends
      */
-    public void animateDiceRoll(
-            int value,
-            Runnable onFinished) {
-
+    public void animateDiceRoll(int value, Runnable onFinished) {
         rollButton.setDisable(true);
-
-        graphicalDice.animateRoll(
-                value,
-                onFinished
-        );
+        graphicalDice.animateRoll(value, onFinished);
     }
 
-    /**
-     * Returns the main gameplay root.
-     */
+    /** @return the root of the gameplay screen */
     public Parent getRoot() {
-
         return root;
+    }
+
+    // ------------------------------------------------------ roster
+    private void updateRoster(GameState gameState) {
+
+        if (rosterRows.size() != gameState.getPlayers().size()) {
+            buildRoster(gameState);
+        }
+
+        PlayerEntry active = gameState.getActivePlayer();
+
+        for (RosterRow row : rosterRows) {
+            boolean isActive = row.player.equals(active);
+
+            row.card.getStyleClass().remove("roster-card-active");
+            row.turnTag.setVisible(isActive);
+            row.turnTag.setManaged(isActive);
+
+            if (isActive) {
+                // A soft tint of the player's own color, a clear
+                // border and a gentle glow.
+                row.card.getStyleClass().add("roster-card-active");
+                row.card.setStyle(
+                        "-fx-background-color: " + row.hex + "26;"
+                        + "-fx-border-color: " + row.hex + ";"
+                        + "-fx-border-width: 2.5;"
+                        + "-fx-effect: dropshadow(gaussian, "
+                        + row.hex + "73, 18, 0.25, 0, 4);");
+            } else {
+                row.card.setStyle(
+                        "-fx-border-color: " + row.hex + "40;");
+            }
+        }
+
+        currentPlayerDot.setFill(Color.web(
+                PlayerPalette.hex(active.color())));
+    }
+
+    private void buildRoster(GameState gameState) {
+        rosterBox.getChildren().clear();
+        rosterRows.clear();
+
+        for (PlayerEntry player : gameState.getPlayers()) {
+            String hex = PlayerPalette.hex(player.color());
+
+            Circle colorDot = new Circle(11, Color.web(hex));
+            colorDot.setStroke(Color.WHITE);
+            colorDot.setStrokeWidth(2.5);
+            colorDot.setEffect(new javafx.scene.effect.DropShadow(
+                    4, 0, 1, Color.rgb(70, 35, 55, 0.25)));
+
+            Label name = new Label(player.name());
+            name.getStyleClass().add("roster-name");
+            name.setMaxWidth(Double.MAX_VALUE);
+
+            // "Your Turn" appears only on the active player's card.
+            Label turnTag = new Label("▶  Your Turn");
+            turnTag.getStyleClass().add("roster-turn-tag");
+            turnTag.setMinWidth(Region.USE_PREF_SIZE);
+            turnTag.setVisible(false);
+            turnTag.setManaged(false);
+            turnTag.setStyle(
+                    "-fx-background-color: " + hex + ";"
+                    + "-fx-text-fill: "
+                    + (player.color()
+                            == Model.GameSetup.PlayerColor.YELLOW
+                            ? "#5A4200" : "#FFFFFF") + ";");
+
+            VBox text = new VBox(5, name, turnTag);
+            text.setAlignment(Pos.CENTER_LEFT);
+            HBox.setHgrow(text, Priority.ALWAYS);
+
+            HBox card = new HBox(12, colorDot, text);
+            card.setAlignment(Pos.CENTER_LEFT);
+            card.getStyleClass().add("roster-card");
+            card.setStyle("-fx-border-color: " + hex + "40;");
+
+            rosterRows.add(new RosterRow(player, card, turnTag, hex));
+            rosterBox.getChildren().add(card);
+        }
     }
 }

@@ -48,12 +48,12 @@ public class MainMenuView {
         title.getStyleClass().add("hero-title");
 
         Label subtitle = new Label(
-                "Roll the dice. Race home.");
+                "Roll the dice and race home");
         subtitle.getStyleClass().add("hero-subtitle");
 
         Label description = new Label(
-                "A playful Ludo experience for "
-                + "2-4 local players.");
+                "A playful Ludo game for 2 to 4 "
+                + "players on one computer");
         description.setWrapText(true);
         description.getStyleClass().add(
                 "hero-description");
@@ -80,7 +80,7 @@ public class MainMenuView {
         buttons.setMaxWidth(300);
 
         Label footer = new Label(
-                "EDUCATIONAL LUDO  •  ITERATION 1");
+                "EDUCATIONAL LUDO");
         footer.getStyleClass().add("hero-footer");
 
         VBox leftSide = new VBox(
@@ -106,7 +106,7 @@ public class MainMenuView {
                 "hero-preview-title");
 
         Label previewCaption = new Label(
-                "Choose your colors and start playing!");
+                "Choose your colors and start playing");
         previewCaption.getStyleClass().add(
                 "hero-preview-caption");
 
@@ -127,6 +127,7 @@ public class MainMenuView {
 
         heroCard.setAlignment(Pos.CENTER);
         heroCard.setMaxWidth(850);
+        heroCard.setMaxHeight(660);
         heroCard.getStyleClass().add("hero-card");
 
         root = new StackPane(heroCard);
