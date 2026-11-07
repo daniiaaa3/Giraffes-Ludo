@@ -554,4 +554,24 @@
 
 
 
+.gameplay-menu-button {
+    -fx-background-color: #FFF0F5;
+    -fx-text-fill: #68354D;
+    -fx-border-color: #E7BFD2;
+    -fx-border-width: 1.5;
+    -fx-border-radius: 12;
+    -fx-background-radius: 12;
+    -fx-padding: 10 17;
+    -fx-font-weight: bold;
+    -fx-font-size: 13px;
+    -fx-cursor: hand;
+}
+.gameplay-menu-button:hover {
+    -fx-background-color: #F9DCE8;
+    -fx-border-color: #C878A0;
+}
+.gameplay-menu-button:focused {
+    -fx-border-color: #9D567C;
+    -fx-border-width: 2;
+}
 

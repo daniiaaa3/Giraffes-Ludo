@@ -1,6 +1,7 @@
 package View;
 
 import java.net.URL;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import javafx.animation.FadeTransition;
 import javafx.animation.ParallelTransition;
@@ -41,7 +42,7 @@ public final class GameDialog {
 
     /** Supported message styles. */
     private enum Type {
-        INFO, SUCCESS, ERROR
+        INFO, SUCCESS, ERROR, CONFIRM
     }
 
     /** Utility class; do not instantiate. */
@@ -82,6 +83,20 @@ public final class GameDialog {
     }
 
     /**
+     * Asks whether to abandon the current, unsaved match.
+     * Staying in the game (including pressing Escape) returns false.
+     *
+     * @param owner owning game window
+     * @return true only if the player explicitly chooses Leave Game
+     */
+    public static boolean confirmLeaveGame(Window owner) {
+        return show(owner, Type.CONFIRM,
+                "Leave this game?",
+                "Your current game progress will be lost. "
+                + "Are you sure you want to return to the Main Menu?");
+    }
+
+    /**
      * Builds and displays a modal window with no operating-system title bar.
      *
      * @param owner application window that owns the dialog
@@ -89,7 +104,7 @@ public final class GameDialog {
      * @param title dialog heading
      * @param message detailed message
      */
-    private static void show(Window owner, Type type,
+    private static boolean show(Window owner, Type type,
                              String title, String message) {
 
         Stage popup = new Stage(StageStyle.TRANSPARENT);
@@ -107,6 +122,7 @@ public final class GameDialog {
             case SUCCESS -> "✓";
             case ERROR -> "!";
             case INFO -> "i";
+            case CONFIRM -> "?";
         });
         symbol.getStyleClass().add("dialog-symbol");
 
@@ -127,17 +143,34 @@ public final class GameDialog {
         description.setMaxWidth(365);
         description.getStyleClass().add("dialog-description");
 
+        // Ordinary messages have one button. Confirmations offer
+        // an explicit, safe choice and never leave on Escape.
+        AtomicBoolean leaveConfirmed = new AtomicBoolean(false);
         Button closeButton = new Button(switch (type) {
             case SUCCESS -> "Continue";
             case ERROR -> "Try Again";
             case INFO -> "Got It";
+            case CONFIRM -> "Stay in Game";
         });
-        closeButton.getStyleClass().add("dialog-action");
+        closeButton.getStyleClass().add(
+                type == Type.CONFIRM
+                    ? "dialog-secondary-action"
+                    : "dialog-action");
         closeButton.setMinWidth(136);
         closeButton.setDefaultButton(true);
         closeButton.setOnAction(event -> popup.close());
 
-        HBox actions = new HBox(closeButton);
+        HBox actions = new HBox(10, closeButton);
+        if (type == Type.CONFIRM) {
+            Button leaveButton = new Button("Leave Game");
+            leaveButton.getStyleClass().add("dialog-danger-action");
+            leaveButton.setMinWidth(136);
+            leaveButton.setOnAction(event -> {
+                leaveConfirmed.set(true);
+                popup.close();
+            });
+            actions.getChildren().add(leaveButton);
+        }
         actions.setAlignment(Pos.CENTER_RIGHT);
         actions.setPadding(new Insets(10, 0, 0, 0));
 
@@ -151,6 +184,7 @@ public final class GameDialog {
             case SUCCESS -> "dialog-success";
             case ERROR -> "dialog-error";
             case INFO -> "dialog-info";
+            case CONFIRM -> "dialog-info";
         });
 
         // Transparent padding gives the rounded card space for its shadow.
@@ -221,5 +255,6 @@ public final class GameDialog {
                 ownerRoot.setEffect(previousEffect);
             }
         }
+        return leaveConfirmed.get();
     }
 }

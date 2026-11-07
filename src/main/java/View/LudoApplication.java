@@ -111,12 +111,54 @@ public class LudoApplication extends Application {
         // Existing view: board, die, player status, and timer.
         GameplayView view = new GameplayView();
 
-        // Existing controller: dice rolls and legal piece moves.
-        new GameplayController(view, gameState, new StepsDice());
+        // GameplayController delegates navigation to this screen
+        // coordinator; the existing game rules stay unchanged.
+        new GameplayController(
+                view,
+                gameState,
+                new StepsDice(),
+                () -> confirmReturnToMenu(scene, view));
 
         activeGameplayView = view;
         scene.setRoot(view.getRoot());
         view.startTimer();
+    }
+
+    /**
+     * Confirms abandoning a match and returns to the main menu.
+     * The timer is paused while the modal is open, resumed when
+     * staying, and stopped before leaving. A new match creates
+     * entirely new GameState and GameplayView instances.
+     *
+     * @param scene the application scene
+     * @param view gameplay view requesting navigation
+     */
+    private void confirmReturnToMenu(
+            Scene scene, GameplayView view) {
+
+        // Ignore callbacks from a game that is no longer active.
+        if (activeGameplayView != view) {
+            return;
+        }
+
+        view.pauseTimer();
+
+        boolean leaveGame;
+        try {
+            leaveGame = GameDialog.confirmLeaveGame(scene.getWindow());
+        } catch (RuntimeException ex) {
+            view.resumeTimer();
+            throw ex;
+        }
+
+        if (!leaveGame) {
+            view.resumeTimer();
+            return;
+        }
+
+        view.stopTimer();
+        activeGameplayView = null;
+        showMainMenu(scene);
     }
 
     /**

@@ -78,3 +78,29 @@
 .dialog-error .dialog-action:hover {
     -fx-background-color: #EAA0B0;
 }
+
+.dialog-secondary-action,
+.dialog-danger-action {
+    -fx-background-radius: 12;
+    -fx-padding: 11 18;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-cursor: hand;
+}
+.dialog-secondary-action {
+    -fx-background-color: #FFF0F5;
+    -fx-text-fill: #68354D;
+    -fx-border-color: #E9C5D6;
+    -fx-border-radius: 12;
+}
+.dialog-secondary-action:hover {
+    -fx-background-color: #F9DFE9;
+}
+.dialog-danger-action {
+    -fx-background-color: #E8A2BE;
+    -fx-text-fill: #54283E;
+}
+.dialog-danger-action:hover {
+    -fx-background-color: #D98CAC;
+}
+
