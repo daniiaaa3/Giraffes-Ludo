@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
 
@@ -219,8 +220,18 @@ public class GameplayUiTest {
                                 changed.add(p);
                             }
                         }
+                        // Iteration 2: a capture also sends one opponent
+                        // piece back to its castle (FR-5.4)
+                        Optional<Piece> captured = FxSupport.fx(
+                                () -> f.state.getLastMoveResult().orElseThrow().captured());
+                        captured.ifPresent(victim -> {
+                            assertTrue(changed.remove(victim), "the captured piece changed");
+                            assertEquals(Piece.CASTLE_PROGRESS, after.get(victim));
+                            assertNotEquals(active.color(), victim.getColor());
+                        });
                         assertEquals(1, changed.size(), "exactly one piece moves per roll");
                         Piece moved = changed.get(0);
+                        assertEquals(active.color(), moved.getColor());
                         assertTrue(selectable.contains(moved));
                         int was = before.get(moved);
                         if (was == Piece.CASTLE_PROGRESS) {

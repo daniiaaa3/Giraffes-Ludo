@@ -3,10 +3,12 @@ package Model;
 
 import java.util.ArrayList;
 import java.util.EnumMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
+import java.util.Set;
 
 import Model.EasyBoard.BoardCell;
 import Model.GameSetup.PlayerColor;
@@ -45,13 +47,22 @@ import Model.TurnRollRules.Outcome;
  * - The last home-path square is the finish. A move is legal
  *   only if it does not go beyond it (exact finish).
  *
- * Not in Iteration 1 (not implemented): captures, blocking,
- * winner detection, and the difficulty levels other than Easy.
+ * Iteration 2 adds capture (FR-5.4) and protected squares
+ * (FR-3.1, FR-3.2, FR-3.4): a piece that lands on an
+ * unprotected square holding one opponent piece sends it back to
+ * its castle. Extra protected squares (random Safe squares,
+ * Surprise squares) are supplied through {@link ProtectedSquares}.
+ * {@link #moveBackward} moves a piece back along its path, stopping
+ * at its start square (FR-5.9) and capturing on landing (FR-5.4);
+ * later question and surprise features call it.
+ *
+ * Not implemented here: Double Blocks, winner detection, and the
+ * difficulty levels other than Easy.
  *
  * MVC Component: Model
  * SRS Requirements: FR-5.1, FR-5.2 (uses FR-4.4 / FR-5.3 via
- * CastleReleaseRules)
- * Iteration: 1
+ * CastleReleaseRules), FR-3.1, FR-3.2, FR-3.4, FR-5.4
+ * Iteration: 1 and 2
  */
 public class GameState {
 
@@ -70,6 +81,16 @@ public class GameState {
     /** The roll waiting for a piece move, or 0 for none. */
     private int pendingRoll = 0;
 
+    /** Start squares and last home squares (FR-3.2, FR-3.4). */
+    private final Set<BoardCell> fixedProtectedSquares =
+            new HashSet<>();
+
+    /** Safe / surprise squares supplied by the board owner. */
+    private final ProtectedSquares additionalProtection;
+
+    /** The most recent completed move, or null before any. */
+    private MoveResult lastMove;
+
     /**
      * Creates a new game on the Easy board with four pieces
      * per player, all in their castles. This is the normal
@@ -79,7 +100,22 @@ public class GameState {
      * @param random  random source for the first player
      */
     public GameState(List<PlayerEntry> players, Random random) {
-        this(new EasyBoard(), new TurnManager(players, random));
+        this(players, random, ProtectedSquares.none());
+    }
+
+    /**
+     * Creates a new game on the Easy board with extra protected
+     * squares, such as the random Safe squares (FR-2.6).
+     *
+     * @param players              validated players
+     * @param random               random source for the first player
+     * @param additionalProtection protected squares besides the
+     *                             start and final home squares
+     */
+    public GameState(List<PlayerEntry> players, Random random,
+                     ProtectedSquares additionalProtection) {
+        this(new EasyBoard(), new TurnManager(players, random),
+                additionalProtection);
     }
 
     /**
@@ -93,12 +129,33 @@ public class GameState {
      *         is inconsistent (arrow or home path misplaced)
      */
     public GameState(EasyBoard board, TurnManager turnManager) {
+        this(board, turnManager, ProtectedSquares.none());
+    }
 
-        if (board == null || turnManager == null) {
+    /**
+     * Creates a game from an existing board and turn manager,
+     * with extra protected squares.
+     *
+     * @param board                the Easy board
+     * @param turnManager          turn order; its players are used
+     * @param additionalProtection protected squares besides the
+     *                             start and final home squares
+     * @throws IllegalArgumentException if an argument is null
+     *         or two players share a color
+     * @throws IllegalStateException if the board's geometry
+     *         is inconsistent (arrow or home path misplaced)
+     */
+    public GameState(EasyBoard board, TurnManager turnManager,
+                     ProtectedSquares additionalProtection) {
+
+        if (board == null || turnManager == null ||
+                additionalProtection == null) {
             throw new IllegalArgumentException(
-                    "Board and turn manager cannot be null.");
+                    "Board, turn manager and protection cannot " +
+                    "be null.");
         }
 
+        this.additionalProtection = additionalProtection;
         this.board = board;
         this.castleRules = new CastleReleaseRules(board);
         this.turnManager = turnManager;
@@ -121,6 +178,15 @@ public class GameState {
 
             pieces.put(color, List.copyOf(own));
             entrySteps.put(color, verifyAndGetEntrySteps(color));
+        }
+
+        // FR-3.2: every start square is protected, and
+        // FR-3.4: so is the last square of every home path.
+        for (PlayerColor color : PlayerColor.values()) {
+            fixedProtectedSquares.add(board.getSharedTrackCell(
+                    board.getStartSquare(color)));
+            List<BoardCell> home = board.getHomePathCells(color);
+            fixedProtectedSquares.add(home.get(home.size() - 1));
         }
     }
 
@@ -261,6 +327,101 @@ public class GameState {
     }
 
     // ------------------------------------------------------
+    // FR-3.1 / FR-3.2 / FR-3.4: protected squares
+    // ------------------------------------------------------
+
+    /**
+     * Tells whether pieces on a square are safe from capture.
+     * Protected squares are the four start squares, the last
+     * home square of each color, and any square the
+     * {@link ProtectedSquares} rule given to this game protects
+     * (random Safe squares, Surprise squares). Arrow squares
+     * and question squares are regular, capturable squares.
+     *
+     * @param cell a board square; null is not protected
+     * @return true if a piece standing there cannot be captured
+     */
+    public boolean isProtectedSquare(BoardCell cell) {
+
+        if (cell == null) {
+            return false;
+        }
+
+        return fixedProtectedSquares.contains(cell) ||
+                additionalProtection.isProtected(cell);
+    }
+
+    /**
+     * @return what the most recent completed move did,
+     *         or empty before the first move
+     */
+    public Optional<MoveResult> getLastMoveResult() {
+        return Optional.ofNullable(lastMove);
+    }
+
+    // ------------------------------------------------------
+    // FR-5.9 / FR-5.4: backward movement
+    // ------------------------------------------------------
+
+    /**
+     * Tells whether a piece can be moved backward: it must be on
+     * the board. Pieces in the castle and finished pieces cannot.
+     * A piece standing on its start square counts as on the board;
+     * moving it backward leaves it there (FR-5.9).
+     *
+     * @param piece a piece of this game
+     * @return true if {@link #moveBackward} accepts the piece
+     * @throws IllegalArgumentException if the piece is null or
+     *         does not belong to this game
+     */
+    public boolean canMoveBackward(Piece piece) {
+        requireOwnedPiece(piece);
+        return piece.getState() == Piece.State.TRACK ||
+                piece.getState() == Piece.State.HOME_PATH;
+    }
+
+    /**
+     * Moves a piece backward along its own path, the reverse of
+     * forward movement.
+     *
+     * - A piece that would go back past its start square stops on
+     *   the start square (FR-5.9).
+     * - The piece lands on one square; pieces passed on the way
+     *   are not affected. If the landing square is unprotected
+     *   and holds one opponent piece, that piece is captured
+     *   (FR-5.4, "forward, backward, ...").
+     * - A move of 0 steps, or one that leaves the piece where it
+     *   is (already on its start square), changes nothing and
+     *   captures nothing (FR-4.6: the square is not activated
+     *   again).
+     *
+     * This is not a turn action: it does not read or change the
+     * active player, the pending roll or the six counter, and it
+     * can move any piece of the game, because questions and
+     * surprise events decide who is moved. The caller (a later
+     * question or surprise feature) supplies the number of steps.
+     *
+     * Not handled here (other owners): Double Blocks. A block on
+     * the way back (FR-5.6, FR-5.7) is not checked; the block
+     * rules will need to hook in before the piece is placed.
+     *
+     * ASSUMPTION (the SRS does not define backward movement from
+     * the home path): the home path is simply the continuation of
+     * the piece's path, so a piece on it walks back along it and,
+     * if the steps allow, onto the shared track through its arrow
+     * square. See {@link BackwardMove#destination}.
+     *
+     * @param piece a piece of this game that is on the board
+     * @param steps how many steps back; 0 or more
+     * @return what the move did
+     * @throws IllegalArgumentException if steps is negative, or the
+     *         piece is null, foreign, in the castle or finished
+     */
+    public MoveResult moveBackward(Piece piece, int steps) {
+        return new BackwardMove(this, steps).execute(piece);
+    }
+
+    // ------------------------------------------------------
     // FR-5.1: legal piece selection
     // ------------------------------------------------------
 
@@ -374,28 +535,19 @@ public class GameState {
                     "You can only move your own pieces.");
         }
 
-        if (!isLegal(piece, pendingRoll)) {
-            throw new IllegalArgumentException(
-                    "That piece cannot move " +
-                    pendingRoll + " steps.");
-        }
+        // Validation, using up the roll, moving and capture all
+        // run through the shared template (see PieceMove).
+        ForwardMove move = new ForwardMove(this, player, pendingRoll);
+        move.execute(piece);
 
-        int roll = pendingRoll;
-
-        // Nothing has changed yet; this is the last check.
-        Outcome outcome = rules.completeMove(player);
-
-        pendingRoll = 0;
-        applyMove(piece, roll);
-
-        return outcome;
+        return move.outcome();
     }
 
     // ------------------------------------------------------
     // Internal rules
     // ------------------------------------------------------
 
-    private boolean isLegal(Piece piece, int steps) {
+    boolean isLegal(Piece piece, int steps) {
 
         return switch (piece.getState()) {
             case FINISHED -> false;
@@ -407,40 +559,110 @@ public class GameState {
         };
     }
 
-    // The caller has already checked that the move is legal.
-    private void applyMove(Piece piece, int steps) {
+    // ------------------------------------------------------
+    // Shared steps of every move (called from PieceMove)
+    // ------------------------------------------------------
+
+    /**
+     * Uses up the pending roll when a forward move is accepted.
+     * Nothing has changed yet; this is the last check.
+     */
+    Outcome consumePendingRoll(PlayerEntry player) {
+        Outcome outcome = rules.completeMove(player);
+        pendingRoll = 0;
+        return outcome;
+    }
+
+    /** CastleReleaseRules confirms a release ends on the start square. */
+    void requireReleaseOnStartSquare(PlayerColor color, int steps) {
+
+        int square = castleRules.getReleaseSquare(color, steps, true);
+
+        if (square != board.getStartSquare(color)) {
+            throw new IllegalStateException(
+                    "Release square is not the start.");
+        }
+    }
+
+    /** Puts the piece on a progress and sets its matching state. */
+    void placeAt(Piece piece, int progress) {
 
         PlayerColor color = piece.getColor();
 
-        if (piece.isInCastle()) {
-
-            // Release: the piece stands on its start square.
-            // CastleReleaseRules confirms it is that square.
-            int square = castleRules.getReleaseSquare(
-                    color, steps, true);
-
-            if (square != board.getStartSquare(color)) {
-                throw new IllegalStateException(
-                        "Release square is not the start.");
-            }
-
-            piece.moveTo(0, Piece.State.TRACK);
-            return;
-        }
-
-        int target = piece.getProgress() + steps;
-
         Piece.State state;
 
-        if (target >= getFinishSteps(color)) {
+        if (progress >= getFinishSteps(color)) {
             state = Piece.State.FINISHED;
-        } else if (target > entrySteps.get(color)) {
+        } else if (progress > entrySteps.get(color)) {
             state = Piece.State.HOME_PATH;
         } else {
             state = Piece.State.TRACK;
         }
 
-        piece.moveTo(target, state);
+        piece.moveTo(progress, state);
+    }
+
+    /** Keeps the move as the game's last move. */
+    MoveResult record(MoveResult result) {
+        lastMove = result;
+        return result;
+    }
+
+    /**
+     * FR-5.4: if the piece that just landed stands on an
+     * unprotected square occupied by exactly one opponent
+     * piece, that piece returns to its castle.
+     *
+     * This is called after every move, so later movement
+     * (backward moves, question and surprise effects) can reuse
+     * it instead of copying the rule. Only the landing square
+     * matters: pieces passed on the way are not captured.
+     *
+     * Not handled here (other owners): Double Blocks. Two or
+     * more opponent pieces on one square are never captured by
+     * this rule; the block rules (FR-5.5 to FR-5.8) decide
+     * whether a piece may land there at all.
+     *
+     * @param mover the piece that just moved
+     * @return the captured piece, or empty if nothing happened
+     */
+    Optional<Piece> resolveCapture(Piece mover) {
+
+        if (mover.isInCastle() || mover.isFinished()) {
+            return Optional.empty();
+        }
+
+        BoardCell landing = getBoardCell(mover).orElseThrow();
+
+        if (isProtectedSquare(landing)) {
+            return Optional.empty();
+        }
+
+        List<Piece> opponentsThere = new ArrayList<>();
+
+        for (Map.Entry<PlayerColor, List<Piece>> entry :
+                pieces.entrySet()) {
+
+            if (entry.getKey() == mover.getColor()) {
+                continue;
+            }
+
+            for (Piece other : entry.getValue()) {
+                if (!other.isInCastle() && !other.isFinished() &&
+                        landing.equals(
+                                getBoardCell(other).orElseThrow())) {
+                    opponentsThere.add(other);
+                }
+            }
+        }
+
+        if (opponentsThere.size() != 1) {
+            return Optional.empty();
+        }
+
+        Piece victim = opponentsThere.get(0);
+        victim.moveTo(Piece.CASTLE_PROGRESS, Piece.State.CASTLE);
+        return Optional.of(victim);
     }
 
     // Reads the arrow and home path from EasyBoard instead of
