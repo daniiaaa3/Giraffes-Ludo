@@ -79,4 +79,16 @@ public final class QuestionController {
         return engine.submitAnswer(
                 answeredQuestion, selectedAnswerIndex);
     }
+    
+
+    /**
+     * Cancels the active question interaction without
+     * evaluating an answer or notifying observers.
+     *
+     * Used when the current game is abandoned or reset.
+     */
+    public void cancelQuestion() {
+        activeQuestion = null;
+    }
+
 }

@@ -266,4 +266,113 @@ class QuestionControllerTest {
 
         assertFalse(controller.hasActiveQuestion());
     }
+    
+
+    @Test
+    void cancellingQuestionClearsActiveQuestion() {
+        controller.startQuestion(
+                QuestionDifficulty.EASY);
+
+        controller.cancelQuestion();
+
+        assertFalse(controller.hasActiveQuestion());
+        assertNull(controller.getActiveQuestion());
+    }
+
+    @Test
+    void cancellationDoesNotNotifyObservers() {
+        List<QuestionResultEvent> events =
+                new ArrayList<>();
+
+        engine.addObserver(events::add);
+
+        controller.startQuestion(
+                QuestionDifficulty.MEDIUM);
+
+        controller.cancelQuestion();
+
+        assertTrue(events.isEmpty());
+    }
+
+    @Test
+    void cannotSubmitAnswerAfterCancellation() {
+        Question question = controller.startQuestion(
+                QuestionDifficulty.HARD);
+
+        controller.cancelQuestion();
+
+        assertThrows(IllegalStateException.class,
+                () -> controller.submitAnswer(
+                        question.getCorrectAnswerIndex()));
+    }
+
+    @Test
+    void canStartNewQuestionAfterCancellation() {
+        controller.startQuestion(
+                QuestionDifficulty.EASY);
+
+        controller.cancelQuestion();
+
+        Question newQuestion = controller.startQuestion(
+                QuestionDifficulty.HARD);
+
+        assertNotNull(newQuestion);
+        assertTrue(controller.hasActiveQuestion());
+
+        assertEquals(QuestionDifficulty.HARD,
+                newQuestion.getDifficulty());
+
+        assertSame(newQuestion,
+                controller.getActiveQuestion());
+    }
+
+    @Test
+    void cancellationWithoutActiveQuestionIsSafe() {
+        assertDoesNotThrow(
+                () -> controller.cancelQuestion());
+
+        assertFalse(controller.hasActiveQuestion());
+    }
+
+    @Test
+    void repeatedCancellationIsSafe() {
+        controller.startQuestion(
+                QuestionDifficulty.MEDIUM);
+
+        controller.cancelQuestion();
+
+        assertDoesNotThrow(
+                () -> controller.cancelQuestion());
+
+        assertFalse(controller.hasActiveQuestion());
+        assertNull(controller.getActiveQuestion());
+    }
+
+    @Test
+    void observersStillWorkAfterCancellation() {
+        List<QuestionResultEvent> events =
+                new ArrayList<>();
+
+        engine.addObserver(events::add);
+
+        controller.startQuestion(
+                QuestionDifficulty.EASY);
+
+        controller.cancelQuestion();
+
+        assertTrue(events.isEmpty());
+
+        Question newQuestion = controller.startQuestion(
+                QuestionDifficulty.HARD);
+
+        QuestionResultEvent result =
+                controller.submitAnswer(
+                        newQuestion.getCorrectAnswerIndex());
+
+        assertEquals(1, events.size());
+        assertSame(result, events.get(0));
+        assertTrue(result.isCorrect());
+        assertEquals(3, result.getMovementSteps());
+    }
+
 }
