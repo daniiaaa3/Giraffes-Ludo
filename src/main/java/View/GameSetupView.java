@@ -66,6 +66,7 @@ public class GameSetupView {
 
     private final BorderPane root;
     private final ComboBox<Integer> playerCountBox;
+    private final ComboBox<String> difficultyBox;
     private final List<TextField> nameFields;
     private final List<ToggleGroup> colorGroups;
     private final List<VBox> playerRows;
@@ -106,8 +107,30 @@ public class GameSetupView {
 
         VBox countSection = new VBox(6, countLabel, playerCountBox);
         countSection.setAlignment(Pos.CENTER_RIGHT);
+        
+     // Iteration 2 - Difficulty selection
+        Label difficultyLabel = new Label("Difficulty");
+        difficultyLabel.getStyleClass().add("setup-label");
 
-        HBox header = new HBox(20, heading, countSection);
+        difficultyBox = new ComboBox<>();
+        difficultyBox.getItems().addAll("Easy", "Medium", "Hard");
+        difficultyBox.setValue("Easy");
+
+        difficultyBox.setPrefWidth(145);
+        difficultyBox.getStyleClass().add("setup-count");
+        difficultyBox.setAccessibleText("Game difficulty");
+
+        VBox difficultySection =
+                new VBox(6, difficultyLabel, difficultyBox);
+
+        difficultySection.setAlignment(Pos.CENTER_RIGHT);
+
+        HBox setupSelectors =
+                new HBox(12, countSection, difficultySection);
+
+        setupSelectors.setAlignment(Pos.CENTER_RIGHT);
+
+        HBox header = new HBox(20, heading, setupSelectors);
         header.setAlignment(Pos.CENTER_LEFT);
         header.setMaxWidth(Double.MAX_VALUE);
 
@@ -483,6 +506,16 @@ public class GameSetupView {
     public int getPlayerCount() {
         Integer count = playerCountBox.getValue();
         return count == null ? 2 : count;
+    }
+    
+    /**
+     * Returns the selected game difficulty.
+     * Iteration 2 - Difficulty Selection
+     *
+     * @return Easy, Medium or Hard
+     */
+    public String getSelectedDifficulty() {
+        return difficultyBox.getValue();
     }
 
     /**
