@@ -4,44 +4,40 @@ import Model.GameSetup.PlayerEntry;
 import Model.TurnRollRules.Outcome;
 
 /**
- * The forward move a player makes with the pending roll
- * (FR-5.1, FR-5.2). Concrete class of the Template Method pattern
- * (see {@link PieceMove}).
+ * Forward movement action. Keeps Marwa's PieceMove Template Method:
+ * validate -> consume pending roll -> destination -> update game state.
  *
- * What is specific to going forward:
- * - validation: the piece must be able to use the roll, including
- *   releasing from the castle on a six and an exact finish
- * - hook: it is a turn action, so the roll is used up and the turn
- *   rules decide what happens next
- * - destination: the start square for a release, otherwise the
- *   current progress plus the roll
- *
- * MVC Component: Model
- * SRS Requirements: FR-5.1, FR-5.2, FR-5.3, FR-4.4
- * Iteration: 1 (logic), 2 (restructured as a template subclass)
+ * Steps controls castle release and turn rules; a special die controls
+ * movement on shared tracks only. The home path uses Steps alone.
  */
 final class ForwardMove extends PieceMove {
 
     private final PlayerEntry player;
     private final int steps;
+    private final int specialDieValue;
     private Outcome outcome;
 
+    // Keep the original constructor for backward compatibility.
     ForwardMove(GameState game, PlayerEntry player, int steps) {
+        this(game, player, steps, 0);
+    }
+
+    ForwardMove(GameState game, PlayerEntry player,
+            int steps, int specialDieValue) {
         super(game);
         this.player = player;
         this.steps = steps;
+        this.specialDieValue = specialDieValue;
     }
 
     @Override
     void validate(Piece piece) {
-
-        if (!game.isLegal(piece, steps)) {
+        if (!game.isLegalWithDice(piece, steps, specialDieValue)) {
             throw new IllegalArgumentException(
-                    "That piece cannot move " + steps + " steps.");
+                    "That piece cannot move with the current dice roll.");
         }
     }
 
-    /** Nothing has changed yet; this is the last check. */
     @Override
     void afterValidation() {
         outcome = game.consumePendingRoll(player);
@@ -49,17 +45,15 @@ final class ForwardMove extends PieceMove {
 
     @Override
     int destination(Piece piece) {
-
         if (piece.isInCastle()) {
-            // Release: the piece stands on its start square.
+            // A regular Steps 6 releases the piece, regardless of Boost.
             game.requireReleaseOnStartSquare(piece.getColor(), steps);
             return 0;
         }
-
-        return piece.getProgress() + steps;
+        return piece.getProgress()
+                + game.movementDistance(piece, steps, specialDieValue);
     }
 
-    /** @return what the turn rules decided, once executed */
     Outcome outcome() {
         return outcome;
     }

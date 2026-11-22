@@ -52,6 +52,8 @@ public class GameplayView {
     private final EasyBoardView easyBoardView;
     private final AdvancedBoardView advancedBoardView;
     private final DiceView graphicalDice;
+    private final DiceView specialGraphicalDice;
+    private final GameDifficulty difficulty;
     private int elapsedSeconds = 0;
     private final Timeline timer;
     /** One player card in the roster. */
@@ -73,6 +75,7 @@ public class GameplayView {
 
     /** Uses the same GameState instance for gameplay and board rendering. */
     public GameplayView(GameState state) {
+        difficulty = state == null ? GameDifficulty.EASY : state.getDifficulty();
         root = new BorderPane();
         root.getStyleClass().addAll("menu-root", "gameplay-root");
         root.setPadding(new Insets(14, 20, 14, 20));
@@ -155,9 +158,32 @@ public class GameplayView {
         rollButton.setMinSize(160, 56);
         rollButton.setMaxWidth(160);
         UiEffects.interactive(rollButton);
-        VBox diceSection = new VBox(
-                16, diceTitle, graphicalDice, diceLabel,
-                extraRollBadge, rollButton);
+        // Easy keeps its existing one-die layout. Advanced levels display
+        // a second, independent dice graphic directly below Steps.
+        VBox diceSection;
+        if (difficulty == GameDifficulty.EASY) {
+            specialGraphicalDice = null;
+            diceSection = new VBox(
+                    16, diceTitle, graphicalDice, diceLabel,
+                    extraRollBadge, rollButton);
+        } else {
+            specialGraphicalDice = new DiceView();
+            specialGraphicalDice.setValue(1);
+
+            Label stepsName = new Label("Steps (1–6)");
+            stepsName.getStyleClass().add("dice-caption");
+            Label specialName = new Label(difficulty == GameDifficulty.MEDIUM
+                    ? "Boost (1–3)" : "UltraBoost (1–6)");
+            specialName.getStyleClass().add("dice-caption");
+
+            diceSection = new VBox(8, diceTitle, stepsName,
+                    graphicalDice, specialName, specialGraphicalDice,
+                    diceLabel, extraRollBadge, rollButton);
+            diceLabel.setWrapText(true);
+            diceLabel.setMaxWidth(185);
+            diceLabel.setAlignment(Pos.CENTER);
+            diceLabel.setStyle("-fx-text-alignment: center;");
+        }
         diceSection.setAlignment(Pos.CENTER);
         diceSection.getStyleClass().add("side-panel");
         diceSection.setMinWidth(210);
@@ -274,6 +300,19 @@ public class GameplayView {
     public void setDiceResult(int result) {
         diceLabel.setText("Rolled " + result);
     }
+
+    /** Displays both dice and the calculated distance on a shared track. */
+    public void setDiceResult(int steps, int specialValue) {
+        if (difficulty == GameDifficulty.EASY) {
+            setDiceResult(steps);
+            return;
+        }
+        int trackSteps = steps * (specialValue - 1);
+        String dieName = difficulty == GameDifficulty.MEDIUM
+                ? "Boost" : "UltraBoost";
+        diceLabel.setText("Steps " + steps + " · " + dieName + " "
+                + specialValue + "\nTrack movement: " + trackSteps);
+    }
     /**
      * Shows or hides the "Extra roll" badge next to the die.
      *
@@ -356,6 +395,25 @@ public class GameplayView {
     public void animateDiceRoll(int value, Runnable onFinished) {
         rollButton.setDisable(true);
         graphicalDice.animateRoll(value, onFinished);
+    }
+
+    /** Rolls Steps and the Boost/UltraBoost graphic simultaneously. */
+    public void animateDiceRoll(int steps, int specialValue,
+            Runnable onFinished) {
+        if (specialGraphicalDice == null) {
+            animateDiceRoll(steps, onFinished);
+            return;
+        }
+        rollButton.setDisable(true);
+        final int[] remaining = {2};
+        Runnable onOneDieFinished = () -> {
+            remaining[0]--;
+            if (remaining[0] == 0 && onFinished != null) {
+                onFinished.run();
+            }
+        };
+        graphicalDice.animateRoll(steps, onOneDieFinished);
+        specialGraphicalDice.animateRoll(specialValue, onOneDieFinished);
     }
     /** **@return** the root of the gameplay screen */
     public Parent getRoot() {
