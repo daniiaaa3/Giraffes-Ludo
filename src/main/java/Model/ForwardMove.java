@@ -30,31 +30,76 @@ final class ForwardMove extends PieceMove {
         this.specialDieValue = specialDieValue;
     }
 
-    @Override
-    void validate(Piece piece) {
-        if (!game.isLegalWithDice(piece, steps, specialDieValue)) {
-            throw new IllegalArgumentException(
-                    "That piece cannot move with the current dice roll.");
-        }
+
+@Override
+void validate(Piece piece) {
+
+    // Preserve the existing movement validation.
+    if (!game.isLegalWithDice(piece, steps, specialDieValue)) {
+        throw new IllegalArgumentException(
+                "That piece cannot move with the current dice roll.");
     }
+
+    // FR-5.7: Only pieces selected by the Double Block
+    // rules may be moved.
+    boolean selectable;
+
+    if (specialDieValue == 0) {
+        selectable = game.getLegalPieces(player, steps)
+                .contains(piece);
+    } else {
+        selectable = game.getLegalPieces(
+                player, steps, specialDieValue)
+                .contains(piece);
+    }
+
+    if (!selectable) {
+        throw new IllegalArgumentException(
+                "Another piece must be selected due to Double Block rules.");
+    }
+}
+
 
     @Override
     void afterValidation() {
         outcome = game.consumePendingRoll(player);
     }
 
-    @Override
-    int destination(Piece piece) {
-        if (piece.isInCastle()) {
-            // A regular Steps 6 releases the piece, regardless of Boost.
-            game.requireReleaseOnStartSquare(piece.getColor(), steps);
-            return 0;
-        }
-        return piece.getProgress()
-                + game.movementDistance(piece, steps, specialDieValue);
+@Override
+int destination(Piece piece) {
+
+    // Preserve the existing castle release behavior.
+    if (piece.isInCastle()) {
+        game.requireReleaseOnStartSquare(
+                piece.getColor(), steps);
+        return 0;
     }
 
-    Outcome outcome() {
-        return outcome;
+    // Preserve the original movement calculation,
+    // including Boost and UltraBoost dice.
+    int target = piece.getProgress()
+            + game.movementDistance(
+                    piece, steps, specialDieValue);
+
+    // Check whether an opponent Double Block
+    // prevents reaching the requested destination.
+    DoubleBlockRules.MoveDecision decision =
+            DoubleBlockGameAdapter.evaluateMovement(
+                    game, piece, target, false);
+
+    if (decision.status()
+            == DoubleBlockRules.MoveStatus.FULL_MOVE
+            || decision.status()
+            == DoubleBlockRules.MoveStatus.STOP_BEFORE_BLOCK) {
+
+        return decision.destinationIndex();
     }
+
+    throw new IllegalStateException(
+            "The selected piece cannot move due to Double Block rules.");
+}
+
+Outcome outcome() {
+    return outcome;
+}
 }
