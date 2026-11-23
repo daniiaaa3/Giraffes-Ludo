@@ -227,6 +227,33 @@ public class GameState {
         return new BackwardMove(this, steps).execute(piece);
     }
 
+    /**
+     * Applies the signed movement reward/penalty from an answered question.
+     *
+     * This is NOT a dice/turn action: the active player, pending dice and
+     * consecutive-sixes counter are intentionally left untouched.
+     *
+     * Positive values use the PieceMove template through QuestionForwardMove;
+     * negative values reuse the existing BackwardMove from Iteration 2.
+     * QuestionEffect currently generates only +/-1, +/-2 and +/-3.
+     *
+     * @param piece the piece that landed on the question square
+     * @param movementSteps signed steps from QuestionResultEvent
+     * @return the movement result recorded by the normal movement template
+     */
+    public MoveResult applyQuestionEffect(Piece piece, int movementSteps) {
+        if (movementSteps == 0 || movementSteps < -3 || movementSteps > 3) {
+            throw new IllegalArgumentException(
+                    "Question movement must be between -3 and 3, excluding 0.");
+        }
+
+        if (movementSteps < 0) {
+            return moveBackward(piece, -movementSteps);
+        }
+
+        return new QuestionForwardMove(this, movementSteps).execute(piece);
+    }
+
     public List<Piece> getLegalPieces(PlayerEntry player, int steps) {
         PlayerColor color = requireKnown(player).color();
         requireDieValue(steps);
