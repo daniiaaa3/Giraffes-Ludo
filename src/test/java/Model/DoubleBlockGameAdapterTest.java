@@ -308,5 +308,73 @@ void testActualMoveStopsBeforeOpponentDoubleBlock() {
     assertEquals(2, movingPiece.getProgress());
 }
 
+@Test
+void testBackwardMoveStopsBeforeOpponentDoubleBlock() {
+
+    GameState game = createGame();
+
+    Piece red = game.getPieces(PlayerColor.RED).get(0);
+    Piece blue1 = game.getPieces(PlayerColor.BLUE).get(0);
+    Piece blue2 = game.getPieces(PlayerColor.BLUE).get(1);
+
+    // RED starts at progress 6.
+    red.moveTo(6, State.TRACK);
+
+    // BLUE creates a Double Block at RED progress 3.
+    var blockCell = game.getBoardCellAt(
+            PlayerColor.RED, 3).orElseThrow();
+
+    int blueProgress = game.getBoardTopology()
+            .getPlayerPath(PlayerColor.BLUE)
+            .indexOf(blockCell);
+
+    assertTrue(blueProgress >= 0);
+    assertTrue(blueProgress <=
+            game.getEntrySteps(PlayerColor.BLUE));
+
+    blue1.moveTo(blueProgress, State.TRACK);
+    blue2.moveTo(blueProgress, State.TRACK);
+
+    // RED tries to move backward by 5 steps.
+    game.moveBackward(red, 5);
+
+    // Must stop at 4, before the block at 3.
+    assertEquals(4, red.getProgress());
+}
+
+@Test
+void testQuestionBonusStopsBeforeOpponentDoubleBlock() {
+
+    GameState game = createGame();
+
+    Piece red = game.getPieces(PlayerColor.RED).get(0);
+    Piece blue1 = game.getPieces(PlayerColor.BLUE).get(0);
+    Piece blue2 = game.getPieces(PlayerColor.BLUE).get(1);
+
+    // RED is on the board.
+    red.moveTo(0, State.TRACK);
+
+    // Create a BLUE Double Block at RED progress 3.
+    var blockCell = game.getBoardCellAt(
+            PlayerColor.RED, 3).orElseThrow();
+
+    int blueProgress = game.getBoardTopology()
+            .getPlayerPath(PlayerColor.BLUE)
+            .indexOf(blockCell);
+
+    assertTrue(blueProgress >= 0);
+    assertTrue(blueProgress <=
+            game.getEntrySteps(PlayerColor.BLUE));
+
+    blue1.moveTo(blueProgress, State.TRACK);
+    blue2.moveTo(blueProgress, State.TRACK);
+
+    // A correct answer gives RED 3 forward steps.
+    game.applyQuestionEffect(red, 3);
+
+    // RED must stop before the Double Block.
+    assertEquals(2, red.getProgress());
+}
+
 
 }

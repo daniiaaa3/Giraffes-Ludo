@@ -35,10 +35,29 @@ final class QuestionForwardMove extends PieceMove {
         }
     }
 
-    @Override
-    int destination(Piece piece) {
-        int target = piece.getProgress() + steps;
-        int finish = game.getFinishSteps(piece.getColor());
-        return target <= finish ? target : piece.getProgress();
+
+@Override
+int destination(Piece piece) {
+
+    int target = piece.getProgress() + steps;
+    int finish = game.getFinishSteps(piece.getColor());
+
+    // Preserve Yara's exact-finish rule.
+    if (target > finish) {
+        return piece.getProgress();
     }
+
+    // FR-5.6: Check Double Blocks along
+    // the question bonus movement path.
+    DoubleBlockRules.MoveDecision decision =
+            DoubleBlockGameAdapter.evaluateMovement(
+                    game,
+                    piece,
+                    target,
+                    false
+            );
+
+    return decision.destinationIndex();
+}
+
 }

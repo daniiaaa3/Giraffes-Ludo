@@ -60,8 +60,28 @@ final class BackwardMove extends PieceMove {
      * progress values are larger than the arrow's, so subtracting
      * also covers the undefined home-path case described above.
      */
-    @Override
-    int destination(Piece piece) {
-        return Math.max(piece.getProgress() - steps, 0);
-    }
+
+@Override
+int destination(Piece piece) {
+
+    // Preserve FR-5.9:
+    // Backward movement cannot go before start.
+    int target = Math.max(
+            piece.getProgress() - steps, 0);
+
+    // FR-5.6: Check opponent Double Blocks
+    // along the backward movement path.
+    DoubleBlockRules.MoveDecision decision =
+            DoubleBlockGameAdapter.evaluateMovement(
+                    game,
+                    piece,
+                    target,
+                    false
+            );
+
+    // Stop before the opponent's block,
+    // or use the original target if the path is clear.
+    return decision.destinationIndex();
+}
+
 }
