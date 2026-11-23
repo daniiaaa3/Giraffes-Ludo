@@ -1,23 +1,36 @@
 package Controller;
 
 import java.util.List;
+import java.util.Optional;
 
 import Model.BoostDice;
 import Model.GameDifficulty;
 import Model.GameSetup.PlayerEntry;
 import Model.GameState;
 import Model.Piece;
+import Model.QuestionDifficulty;
+import Model.QuestionEngine;
+import Model.QuestionRepository;
+import Model.QuestionResultEvent;
+import Model.QuestionSquareResolver;
 import Model.StepsDice;
 import Model.TurnRollRules.Outcome;
 import Model.UltraBoostDice;
 import View.GameplayView;
+import View.QuestionDialog;
+import javafx.application.Platform;
+import javafx.stage.Window;
 
 /**
  * Connects the gameplay UI to the game model.
  *
- * Iteration 2: supports the Steps die plus Boost (Medium) or UltraBoost (Hard).
- * Turn rules always receive only the original Steps die (1-6).
- * The model, not this controller, decides move legality and distance.
+ * Iteration 2: Steps + Boost/UltraBoost dice, plus educational question
+ * dialogs for landing on a question square.
+ *
+ * Questions are shown only after an ordinary piece move finishes animating.
+ * A question's extra movement is not a new dice move and does not consume
+ * a roll or switch turns. Reaching another question square triggers another
+ * question (SRS FR-3.7).
  *
  * MVC: Controller
  */
@@ -28,6 +41,11 @@ public class GameplayController {
     private final StepsDice dice;
     private final BoostDice boostDice;
     private final UltraBoostDice ultraBoostDice;
+
+    // Created only when the first question square is reached. This avoids
+    // loading the question bank for Easy games and ordinary UI tests.
+    private QuestionDialog questionDialog;
+    private boolean questionInProgress;
 
     /** Original constructor retained for existing tests and launchers. */
     public GameplayController(GameplayView view, GameState gameState,
@@ -65,7 +83,7 @@ public class GameplayController {
 
     /** Rolls the correct dice for the difficulty, then reports the roll. */
     private void handleRoll() {
-        if (view.isAnimating()) {
+        if (questionInProgress || view.isAnimating()) {
             return;
         }
         if (!gameState.isAwaitingRoll()) {
@@ -104,23 +122,107 @@ public class GameplayController {
 
     /** Selects and animates one piece after the model resolves its move. */
     private void handlePieceSelection(Piece piece) {
-        if (view.isAnimating() || !gameState.isAwaitingMove()) {
+        if (questionInProgress || view.isAnimating()
+                || !gameState.isAwaitingMove()) {
             return;
         }
         if (!gameState.getSelectablePieces().contains(piece)) {
             return;
         }
 
-        PlayerEntry player = gameState.getActivePlayer();
+        // Keep the original player: completeMove() may already have advanced
+        // the active player before the piece animation is over.
+        PlayerEntry mover = gameState.getActivePlayer();
         int fromProgress = piece.getProgress();
-        Outcome outcome = gameState.movePiece(player, piece);
+        Outcome outcome = gameState.movePiece(mover, piece);
 
         view.setSelectablePieces(List.of());
         view.setRollEnabled(false);
-        view.animatePieceMove(gameState, piece, fromProgress, () -> {
-            handleOutcome(outcome);
-            refreshView();
-        });
+        view.animatePieceMove(gameState, piece, fromProgress,
+                () -> checkQuestionLanding(piece, mover, outcome));
+    }
+
+    /**
+     * Checks the precise square drawn on the board. This runs after the
+     * ordinary move AND after every question-induced move (FR-3.7).
+     */
+    private void checkQuestionLanding(Piece piece, PlayerEntry mover,
+            Outcome originalMoveOutcome) {
+        Optional<QuestionDifficulty> difficulty =
+                QuestionSquareResolver.forPiece(gameState, piece);
+
+        if (difficulty.isEmpty()) {
+            finishQuestion(originalMoveOutcome);
+            return;
+        }
+
+        questionInProgress = true;
+        view.setSelectablePieces(List.of());
+        view.setRollEnabled(false);
+        view.showGameMessage(
+                mover.name() + " landed on a question square!");
+
+        // Defer the modal dialog to a new JavaFX pulse, rather than opening
+        // a nested event loop in a piece-animation completion callback.
+        Platform.runLater(() -> resolveQuestion(
+                piece, mover, difficulty.get(), originalMoveOutcome));
+    }
+
+    /** Opens a question, applies its movement, and checks the new landing. */
+    private void resolveQuestion(Piece piece, PlayerEntry mover,
+            QuestionDifficulty difficulty, Outcome originalMoveOutcome) {
+        try {
+            if (questionDialog == null) {
+                QuestionRepository repository = new QuestionRepository();
+                QuestionEngine engine = new QuestionEngine(repository);
+                questionDialog = new QuestionDialog(
+                        new QuestionController(engine));
+            }
+
+            Window owner = view.getRoot().getScene() == null
+                    ? null : view.getRoot().getScene().getWindow();
+            Optional<QuestionResultEvent> result =
+                    questionDialog.showQuestion(difficulty, owner);
+
+            // The dialog normally requires a submitted answer before it can
+            // close, but this handles a window teardown safely as well.
+            if (result.isEmpty()) {
+                finishQuestion(originalMoveOutcome);
+                return;
+            }
+
+            int fromProgress = piece.getProgress();
+            gameState.applyQuestionEffect(
+                    piece, result.get().getMovementSteps());
+            int toProgress = piece.getProgress();
+
+            if (toProgress > fromProgress) {
+                // Existing piece animation supports forward movement.
+                view.animatePieceMove(gameState, piece, fromProgress,
+                        () -> checkQuestionLanding(
+                                piece, mover, originalMoveOutcome));
+            } else if (toProgress < fromProgress) {
+                // Backward movement is supported by the model, but the board
+                // does not yet provide a backward animation. Render at once.
+                view.updateBoard(gameState);
+                checkQuestionLanding(piece, mover, originalMoveOutcome);
+            } else {
+                // Exact-finish rule may prevent a forward question bonus;
+                // an unchanged square is NOT a fresh landing.
+                finishQuestion(originalMoveOutcome);
+            }
+        } catch (RuntimeException error) {
+            finishQuestion(originalMoveOutcome);
+            view.showGameMessage("Could not complete the question: "
+                    + error.getMessage());
+        }
+    }
+
+    /** Unlocks gameplay only after all linked question landings are done. */
+    private void finishQuestion(Outcome originalMoveOutcome) {
+        handleOutcome(originalMoveOutcome);
+        questionInProgress = false;
+        refreshView();
     }
 
     /** Preserves Iteration 1 feedback and extra-roll logic. */
@@ -192,8 +294,9 @@ public class GameplayController {
 
     private void refreshView() {
         view.setCurrentPlayer(gameState.getActivePlayer().name());
-        view.setSelectablePieces(gameState.getSelectablePieces());
-        view.setRollEnabled(gameState.isAwaitingRoll());
+        view.setSelectablePieces(questionInProgress
+                ? List.of() : gameState.getSelectablePieces());
+        view.setRollEnabled(!questionInProgress && gameState.isAwaitingRoll());
         view.updateBoard(gameState);
     }
 }
