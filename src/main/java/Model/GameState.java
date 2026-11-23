@@ -227,19 +227,10 @@ public class GameState {
         return new BackwardMove(this, steps).execute(piece);
     }
 
+
     /**
-     * Applies the signed movement reward/penalty from an answered question.
-     *
-     * This is NOT a dice/turn action: the active player, pending dice and
-     * consecutive-sixes counter are intentionally left untouched.
-     *
-     * Positive values use the PieceMove template through QuestionForwardMove;
-     * negative values reuse the existing BackwardMove from Iteration 2.
-     * QuestionEffect currently generates only +/-1, +/-2 and +/-3.
-     *
-     * @param piece the piece that landed on the question square
-     * @param movementSteps signed steps from QuestionResultEvent
-     * @return the movement result recorded by the normal movement template
+     * Applies the movement reward or penalty from a question.
+     * This action does not change the active player or pending dice.
      */
     public MoveResult applyQuestionEffect(Piece piece, int movementSteps) {
         if (movementSteps == 0 || movementSteps < -3 || movementSteps > 3) {
@@ -253,6 +244,38 @@ public class GameState {
 
         return new QuestionForwardMove(this, movementSteps).execute(piece);
     }
+
+    /**
+     * Checks whether a piece can move forward due to an effect,
+     * without going beyond its finish square.
+     */
+    public boolean canMoveForward(Piece piece, int steps) {
+        requireOwnedPiece(piece);
+
+        return steps >= 0
+                && (piece.getState() == Piece.State.TRACK
+                    || piece.getState() == Piece.State.HOME_PATH)
+                && steps <= getFinishSteps(piece.getColor())
+                        - piece.getProgress();
+    }
+
+    /**
+     * Moves a piece forward due to an effect without consuming a roll.
+     */
+    public MoveResult moveForward(Piece piece, int steps) {
+        return new EffectForwardMove(this, steps).execute(piece);
+    }
+
+    /**
+     * Applies a signed movement effect.
+     * Positive values move forward; negative values move backward.
+     */
+    public MoveResult moveByEffect(Piece piece, int signedSteps) {
+        return signedSteps < 0
+                ? moveBackward(piece, -signedSteps)
+                : moveForward(piece, signedSteps);
+    }
+
 
     public List<Piece> getLegalPieces(PlayerEntry player, int steps) {
         PlayerColor color = requireKnown(player).color();
