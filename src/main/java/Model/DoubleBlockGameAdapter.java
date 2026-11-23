@@ -52,4 +52,45 @@ public final class DoubleBlockGameAdapter {
 
         return List.copyOf(positions);
     }
+
+/**
+ * FR-5.6, FR-5.7:
+ * Evaluates movement against Double Blocks
+ * using the real game board and piece positions.
+ *
+ * @param game current game
+ * @param piece moving piece
+ * @param targetProgress intended destination
+ * @param anotherPieceCanMakeFullMove whether another
+ *        piece can complete its full movement
+ * @return movement decision
+ */
+public static DoubleBlockRules.MoveDecision evaluateMovement(
+        GameState game,
+        Piece piece,
+        int targetProgress,
+        boolean anotherPieceCanMakeFullMove) {
+
+    Objects.requireNonNull(game, "Game cannot be null");
+    Objects.requireNonNull(piece, "Piece cannot be null");
+
+    // Validate that the piece belongs to this game.
+    game.getBoardCell(piece);
+
+    if (piece.isInCastle() || piece.isFinished()) {
+        throw new IllegalArgumentException(
+                "Only an active board piece can move.");
+    }
+
+    return DoubleBlockRules.evaluateMove(
+            game.getBoardTopology().getPlayerPath(
+                    piece.getColor()),
+            piece.getProgress(),
+            targetProgress,
+            piece.getColor(),
+            getBoardPositions(game),
+            anotherPieceCanMakeFullMove
+    );
+}
+
 }

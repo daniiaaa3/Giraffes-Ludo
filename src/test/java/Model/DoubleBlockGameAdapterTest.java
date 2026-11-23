@@ -114,4 +114,58 @@ void testOpponentDoubleBlockPreventsCastleRelease() {
     assertEquals(4, game.getLegalPieces(redPlayer, 6).size());
 }
 
+@Test
+void testStopsBeforeOpponentDoubleBlock() {
+
+    GameState game = createGame();
+
+    Piece red =
+            game.getPieces(PlayerColor.RED).get(0);
+
+    Piece blue1 =
+            game.getPieces(PlayerColor.BLUE).get(0);
+    Piece blue2 =
+            game.getPieces(PlayerColor.BLUE).get(1);
+
+    // RED starts at progress 0.
+    red.moveTo(0, State.TRACK);
+
+    // Choose a square three steps ahead of RED.
+    var blockCell = game.getBoardCellAt(
+            PlayerColor.RED, 3).orElseThrow();
+
+    // Find the same square on BLUE's path.
+    int blueProgress = game.getBoardTopology()
+            .getPlayerPath(PlayerColor.BLUE)
+            .indexOf(blockCell);
+
+    assertTrue(blueProgress >= 0);
+    assertTrue(blueProgress <=
+            game.getEntrySteps(PlayerColor.BLUE));
+
+    // Two BLUE pieces create a Double Block.
+    blue1.moveTo(blueProgress, State.TRACK);
+    blue2.moveTo(blueProgress, State.TRACK);
+
+    // RED attempts to move six steps.
+    var decision =
+            DoubleBlockGameAdapter.evaluateMovement(
+                    game,
+                    red,
+                    6,
+                    false
+            );
+
+    // RED must stop at progress 2,
+    // immediately before BLUE's block.
+    assertEquals(
+            DoubleBlockRules.MoveStatus.STOP_BEFORE_BLOCK,
+            decision.status()
+    );
+
+    assertEquals(2, decision.destinationIndex());
+    assertEquals(4, decision.unusedSteps());
+}
+
+
 }
