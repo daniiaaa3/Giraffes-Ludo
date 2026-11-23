@@ -376,5 +376,55 @@ void testQuestionBonusStopsBeforeOpponentDoubleBlock() {
     assertEquals(2, red.getProgress());
 }
 
+@Test
+void testMustBreakOwnDoubleBlockWhenOnlyMove() {
+
+    GameState game = createGame();
+
+    PlayerEntry player = game.getActivePlayer();
+    PlayerColor color = player.color();
+
+    Piece piece1 = game.getPieces(player).get(0);
+    Piece piece2 = game.getPieces(player).get(1);
+
+    // Two pieces of the same player share a square.
+    game.placeAt(piece1, 4);
+    game.placeAt(piece2, 4);
+
+    var blockCell = game.getBoardCellAt(
+            color, 4).orElseThrow();
+
+    assertTrue(DoubleBlockRules.hasDoubleBlock(
+            DoubleBlockGameAdapter.getBoardPositions(game),
+            color,
+            blockCell
+    ));
+
+    // The remaining pieces are in the castle.
+    // With a roll of 2, only the blocked pair can move.
+    assertEquals(
+            TurnRollRules.Outcome.MOVE_REQUIRED,
+            game.recordRoll(player, 2)
+    );
+
+    List<Piece> selectable = game.getSelectablePieces();
+
+    assertEquals(2, selectable.size());
+    assertTrue(selectable.contains(piece1));
+    assertTrue(selectable.contains(piece2));
+
+    // Moving one piece breaks the player's own block.
+    game.movePiece(player, piece1);
+
+    assertEquals(6, piece1.getProgress());
+    assertEquals(4, piece2.getProgress());
+
+    assertFalse(DoubleBlockRules.hasDoubleBlock(
+            DoubleBlockGameAdapter.getBoardPositions(game),
+            color,
+            blockCell
+    ));
+}
+
 
 }
