@@ -413,6 +413,28 @@ public class GameState {
         return move.outcome();
     }
 
+/**
+ * FR-5.6: An opponent Double Block on the start
+ * square prevents a piece from leaving the castle.
+ */
+private boolean canReleaseWithoutOpponentBlock(
+        PlayerColor color, int steps) {
+
+    if (!castleRules.canRelease(steps, true)) {
+        return false;
+    }
+
+    BoardCell startSquare =
+            topology.getCellAt(color, 0).orElseThrow();
+
+    return DoubleBlockRules.canReleaseOnStart(
+            DoubleBlockGameAdapter.getBoardPositions(this),
+            color,
+            startSquare
+    );
+}
+
+
     /**
      * Legal move after both dice have been rolled. Never treat a zero
      * track-distance roll as a move; castle release is the exception.
@@ -423,7 +445,8 @@ public class GameState {
         }
         return switch (piece.getState()) {
             case FINISHED -> false;
-            case CASTLE -> castleRules.canRelease(steps, true);
+            case CASTLE -> canReleaseWithoutOpponentBlock(
+                    piece.getColor(), steps);
             case TRACK, HOME_PATH -> {
                 int distance = movementDistance(
                         piece, steps, specialDieValue);
@@ -451,7 +474,8 @@ public class GameState {
     boolean isLegal(Piece piece, int steps) {
         return switch (piece.getState()) {
             case FINISHED -> false;
-            case CASTLE -> castleRules.canRelease(steps, true);
+            case CASTLE -> canReleaseWithoutOpponentBlock(
+                    piece.getColor(), steps);
             case TRACK, HOME_PATH -> piece.getProgress() + steps
                     <= getFinishSteps(piece.getColor());
         };
