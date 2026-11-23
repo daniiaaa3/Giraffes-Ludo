@@ -167,5 +167,146 @@ void testStopsBeforeOpponentDoubleBlock() {
     assertEquals(4, decision.unusedSteps());
 }
 
+@Test
+void testFullMoveDetectionWithOpponentBlock() {
+
+    GameState game = createGame();
+
+    Piece red = game.getPieces(
+            PlayerColor.RED).get(0);
+
+    Piece blue1 = game.getPieces(
+            PlayerColor.BLUE).get(0);
+
+    Piece blue2 = game.getPieces(
+            PlayerColor.BLUE).get(1);
+
+    red.moveTo(0, State.TRACK);
+
+    var blockCell = game.getBoardCellAt(
+            PlayerColor.RED, 3).orElseThrow();
+
+    int blueProgress = game.getBoardTopology()
+            .getPlayerPath(PlayerColor.BLUE)
+            .indexOf(blockCell);
+
+    assertTrue(blueProgress >= 0);
+    assertTrue(blueProgress <=
+            game.getEntrySteps(PlayerColor.BLUE));
+
+    blue1.moveTo(blueProgress, State.TRACK);
+    blue2.moveTo(blueProgress, State.TRACK);
+
+    // RED cannot complete a six-step move.
+    assertFalse(game.canCompleteFullMove(red, 6, 0));
+
+    // Removing one BLUE piece removes the block.
+    blue2.moveTo(Piece.CASTLE_PROGRESS, State.CASTLE);
+
+    // RED can now complete the full movement.
+    assertTrue(game.canCompleteFullMove(red, 6, 0));
+}
+
+@Test
+void testFullMoveHasPriorityOverBlockedMove() {
+
+    GameState game = createGame();
+
+    PlayerEntry redPlayer =
+            new PlayerEntry("Red", PlayerColor.RED);
+
+    Piece blockedRed =
+            game.getPieces(PlayerColor.RED).get(0);
+
+    Piece freeRed =
+            game.getPieces(PlayerColor.RED).get(1);
+
+    Piece blue1 =
+            game.getPieces(PlayerColor.BLUE).get(0);
+
+    Piece blue2 =
+            game.getPieces(PlayerColor.BLUE).get(1);
+
+    // First red piece will encounter a block.
+    blockedRed.moveTo(0, State.TRACK);
+
+    // Second red piece has a clear path.
+    freeRed.moveTo(10, State.TRACK);
+
+    // Create a BLUE Double Block at RED progress 3.
+    var blockCell = game.getBoardCellAt(
+            PlayerColor.RED, 3).orElseThrow();
+
+    int blueProgress = game.getBoardTopology()
+            .getPlayerPath(PlayerColor.BLUE)
+            .indexOf(blockCell);
+
+    assertTrue(blueProgress >= 0);
+    assertTrue(blueProgress <=
+            game.getEntrySteps(PlayerColor.BLUE));
+
+    blue1.moveTo(blueProgress, State.TRACK);
+    blue2.moveTo(blueProgress, State.TRACK);
+
+    // RED rolls 5.
+    List<Piece> legal =
+            game.getLegalPieces(redPlayer, 5);
+
+    // Only the piece with a full move is selectable.
+    assertEquals(List.of(freeRed), legal);
+}
+
+@Test
+void testActualMoveStopsBeforeOpponentDoubleBlock() {
+
+    GameState game = createGame();
+
+    PlayerEntry currentPlayer = game.getActivePlayer();
+
+    PlayerColor opponentColor =
+            currentPlayer.color() == PlayerColor.RED
+                    ? PlayerColor.BLUE
+                    : PlayerColor.RED;
+
+    Piece movingPiece =
+            game.getPieces(currentPlayer).get(0);
+
+    movingPiece.moveTo(0, State.TRACK);
+
+    // Place an opponent Double Block at progress 3.
+    var blockCell = game.getBoardCellAt(
+            currentPlayer.color(), 3).orElseThrow();
+
+    int opponentProgress = game.getBoardTopology()
+            .getPlayerPath(opponentColor)
+            .indexOf(blockCell);
+
+    assertTrue(opponentProgress >= 0);
+    assertTrue(opponentProgress <=
+            game.getEntrySteps(opponentColor));
+
+    var opponentPieces = game.getPieces(opponentColor);
+
+    opponentPieces.get(0).moveTo(
+            opponentProgress, State.TRACK);
+    opponentPieces.get(1).moveTo(
+            opponentProgress, State.TRACK);
+
+    // Roll 5 and perform an actual game move.
+    assertEquals(
+            TurnRollRules.Outcome.MOVE_REQUIRED,
+            game.recordRoll(currentPlayer, 5)
+    );
+
+    assertTrue(
+            game.getSelectablePieces().contains(movingPiece)
+    );
+
+    game.movePiece(currentPlayer, movingPiece);
+
+    // Must stop immediately before the block.
+    assertEquals(2, movingPiece.getProgress());
+}
+
 
 }

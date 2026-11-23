@@ -302,18 +302,72 @@ public class GameState {
                 : moveForward(piece, signedSteps);
     }
 
-    public List<Piece> getLegalPieces(PlayerEntry player, int steps) {
-        PlayerColor color = requireKnown(player).color();
-        requireDieValue(steps);
 
-        List<Piece> legal = new ArrayList<>();
-        for (Piece piece : pieces.get(color)) {
-            if (isLegal(piece, steps)) {
-                legal.add(piece);
-            }
+     public List<Piece> getLegalPieces(
+        PlayerEntry player, int steps) {
+
+    return getLegalPiecesWithBlocks(player, steps, 0);
+     }
+
+/**
+ * FR-5.7: Prefer full moves over partial moves
+ * stopped by an opponent Double Block.
+ *
+ * Supports normal and advanced dice.
+ */
+private List<Piece> getLegalPiecesWithBlocks(
+        PlayerEntry player,
+        int steps,
+        int specialDieValue) {
+
+    PlayerColor color = requireKnown(player).color();
+    requireDieValue(steps);
+
+    List<Piece> fullMoves = new ArrayList<>();
+    List<Piece> partialMoves = new ArrayList<>();
+
+    for (Piece piece : pieces.get(color)) {
+
+        // Preserve existing movement validation.
+        if (!isLegalWithDice(piece, steps, specialDieValue)) {
+            continue;
         }
-        return List.copyOf(legal);
+
+        // Full movement has priority.
+        if (canCompleteFullMove(
+                piece, steps, specialDieValue)) {
+
+            fullMoves.add(piece);
+            continue;
+        }
+
+        // Castle pieces cannot move partially.
+        if (piece.isInCastle()) {
+            continue;
+        }
+
+        int target = piece.getProgress()
+                + movementDistance(
+                        piece, steps, specialDieValue);
+
+        DoubleBlockRules.MoveDecision decision =
+                DoubleBlockGameAdapter.evaluateMovement(
+                        this, piece, target, false);
+
+        if (decision.status()
+                == DoubleBlockRules.MoveStatus.STOP_BEFORE_BLOCK) {
+
+            partialMoves.add(piece);
+        }
     }
+
+    if (!fullMoves.isEmpty()) {
+        return List.copyOf(fullMoves);
+    }
+
+    return List.copyOf(partialMoves);
+}
+
 
     public boolean hasLegalMove(PlayerEntry player, int steps) {
         return !getLegalPieces(player, steps).isEmpty();
@@ -323,20 +377,17 @@ public class GameState {
      * Preview legal moves for BOTH dice. The Steps die still controls
      * castle release and three-sixes turn rules.
      */
-    public List<Piece> getLegalPieces(
-            PlayerEntry player, int steps, int specialDieValue) {
-        PlayerColor color = requireKnown(player).color();
-        requireDieValue(steps);
-        requireAdvancedDice(specialDieValue);
 
-        List<Piece> legal = new ArrayList<>();
-        for (Piece piece : pieces.get(color)) {
-            if (isLegalWithDice(piece, steps, specialDieValue)) {
-                legal.add(piece);
-            }
-        }
-        return List.copyOf(legal);
-    }
+public List<Piece> getLegalPieces(
+        PlayerEntry player, int steps, int specialDieValue) {
+
+    requireKnown(player);
+    requireDieValue(steps);
+    requireAdvancedDice(specialDieValue);
+
+    return getLegalPiecesWithBlocks(
+            player, steps, specialDieValue);
+}
 
     public boolean hasLegalMove(
             PlayerEntry player, int steps, int specialDieValue) {
@@ -470,6 +521,43 @@ private boolean canReleaseWithoutOpponentBlock(
         return AdvancedDiceMovementCalculator.calculateTrackSteps(
                 getDifficulty(), steps, specialDieValue);
     }
+
+/**
+ * FR-5.7: Checks whether a piece can complete
+ * its entire movement without crossing an
+ * opponent's Double Block.
+ *
+ * Supports Easy, Medium and Hard dice.
+ */
+boolean canCompleteFullMove(
+        Piece piece, int steps, int specialDieValue) {
+
+    // First verify the ordinary movement rules.
+    if (!isLegalWithDice(piece, steps, specialDieValue)) {
+        return false;
+    }
+
+    // Castle release is already checked by
+    // isLegalWithDice, including start-square blocks.
+    if (piece.isInCastle()) {
+        return true;
+    }
+
+    int target = piece.getProgress()
+            + movementDistance(piece, steps, specialDieValue);
+
+    DoubleBlockRules.MoveDecision decision =
+            DoubleBlockGameAdapter.evaluateMovement(
+                    this,
+                    piece,
+                    target,
+                    false
+            );
+
+    return decision.status()
+            == DoubleBlockRules.MoveStatus.FULL_MOVE;
+}
+
 
     boolean isLegal(Piece piece, int steps) {
         return switch (piece.getState()) {
