@@ -227,6 +227,81 @@ public class GameState {
         return new BackwardMove(this, steps).execute(piece);
     }
 
+    /**
+     * Tells whether a piece can be moved forward by an effect such as a
+     * correct question answer (FR-7.6): it must be on the board and the
+     * move must not go beyond the finish square (FR-3.4, exact finish).
+     * This is not a dice move, so it ignores the pending roll.
+     *
+     * @param piece a piece of this game
+     * @param steps how many steps forward
+     * @return true if {@link #moveForward} accepts the move
+     * @throws IllegalArgumentException if the piece is null or does not
+     *         belong to this game
+     */
+    public boolean canMoveForward(Piece piece, int steps) {
+        requireOwnedPiece(piece);
+        // Compare with the remaining distance instead of adding to the
+        // progress, so very large step values cannot overflow.
+        return steps >= 0
+                && (piece.getState() == Piece.State.TRACK
+                || piece.getState() == Piece.State.HOME_PATH)
+                && steps <= getFinishSteps(piece.getColor())
+                        - piece.getProgress();
+    }
+
+    /**
+     * Moves a piece forward along its own path as the result of an
+     * effect, for example a correct question answer (FR-7.6). It is not
+     * a turn action: the pending roll, the active player and the six
+     * counter are not touched, and any piece of the game can be moved.
+     *
+     * The piece lands on one square. If that square is unprotected and
+     * holds one opponent piece, the opponent is captured (FR-5.4). A
+     * move of 0 steps changes nothing and captures nothing. Landing
+     * exactly on the finish square finishes the piece. A move beyond
+     * the finish is rejected: the piece never enters the finish without
+     * the exact distance (FR-3.4).
+     *
+     * Not handled here: any question or surprise on the landing square,
+     * and Double Blocks. The caller decides what happens next and can
+     * read the landing square from the returned result.
+     *
+     * Call it at the right point of the gameplay flow: normally after
+     * the regular move has been completed and before the next roll, so
+     * that no roll is waiting for a piece that the effect might move.
+     *
+     * @param piece a piece of this game that is on the board
+     * @param steps how many steps forward; 0 or more
+     * @return what the move did
+     * @throws IllegalArgumentException if steps is negative, or the piece
+     *         is null, foreign, in the castle, finished, or the move would
+     *         go beyond the finish square
+     */
+    public MoveResult moveForward(Piece piece, int steps) {
+        return new EffectForwardMove(this, steps).execute(piece);
+    }
+
+    /**
+     * Applies a signed movement effect: a positive number moves the
+     * piece forward, a negative number backward, and 0 does nothing.
+     * This matches the signed step count of a question result (correct
+     * answer forward, wrong answer backward by the same amount). As with
+     * {@link #moveForward}, call it normally after the regular move and
+     * before the next roll.
+     *
+     * @param piece       a piece of this game that is on the board
+     * @param signedSteps steps forward (positive) or backward (negative)
+     * @return what the move did
+     * @throws IllegalArgumentException as {@link #moveForward} or
+     *         {@link #moveBackward}
+     */
+    public MoveResult moveByEffect(Piece piece, int signedSteps) {
+        return signedSteps < 0
+                ? moveBackward(piece, -signedSteps)
+                : moveForward(piece, signedSteps);
+    }
+
     public List<Piece> getLegalPieces(PlayerEntry player, int steps) {
         PlayerColor color = requireKnown(player).color();
         requireDieValue(steps);
