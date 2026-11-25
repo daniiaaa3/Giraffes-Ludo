@@ -51,8 +51,27 @@ final class EffectForwardMove extends PieceMove {
         }
     }
 
-    @Override
-    int destination(Piece piece) {
-        return piece.getProgress() + steps;
+
+@Override
+int destination(Piece piece) {
+
+    // Preserve zero-step movement behavior.
+    if (steps == 0) {
+        return piece.getProgress();
     }
+
+    int target = piece.getProgress() + steps;
+
+    // Stop before an opponent's Double Block.
+    DoubleBlockRules.MoveDecision decision =
+            DoubleBlockGameAdapter.evaluateMovement(
+                    game,
+                    piece,
+                    target,
+                    false
+            );
+
+    return decision.destinationIndex();
+}
+
 }

@@ -426,5 +426,41 @@ void testMustBreakOwnDoubleBlockWhenOnlyMove() {
     ));
 }
 
+@Test
+void testForwardEffectStopsBeforeOpponentDoubleBlock() {
+
+    GameState game = createGame();
+
+    Piece red = game.getPieces(PlayerColor.RED).get(0);
+    Piece blue1 = game.getPieces(PlayerColor.BLUE).get(0);
+    Piece blue2 = game.getPieces(PlayerColor.BLUE).get(1);
+
+    // RED starts at progress 0.
+    red.moveTo(0, State.TRACK);
+
+    // Find the square at RED progress 3.
+    var blockCell = game.getBoardCellAt(
+            PlayerColor.RED, 3).orElseThrow();
+
+    int blueProgress = game.getBoardTopology()
+            .getPlayerPath(PlayerColor.BLUE)
+            .indexOf(blockCell);
+
+    assertTrue(blueProgress >= 0);
+    assertTrue(blueProgress <=
+            game.getEntrySteps(PlayerColor.BLUE));
+
+    // Create an opponent Double Block.
+    blue1.moveTo(blueProgress, State.TRACK);
+    blue2.moveTo(blueProgress, State.TRACK);
+
+    // RED tries to move forward 5 steps
+    // because of a movement effect.
+    game.moveForward(red, 5);
+
+    // RED must stop before the block.
+    assertEquals(2, red.getProgress());
+}
+
 
 }
