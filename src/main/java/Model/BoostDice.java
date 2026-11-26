@@ -10,6 +10,9 @@ import java.util.Random;
  * The Boost die generates a random value between 1 and 3.
  * Each value has an equal probability.
  *
+ * Factory Method Design Pattern:
+ * Concrete Product implementing SpecialDice.
+ *
  * The movement multiplier is calculated separately
  * according to the game rules.
  *
@@ -17,7 +20,7 @@ import java.util.Random;
  * SRS Requirement: FR-4.2
  * Iteration: 2
  */
-public final class BoostDice {
+public final class BoostDice implements SpecialDice {
 
     public static final int MIN_VALUE = 1;
     public static final int MAX_VALUE = 3;
@@ -46,6 +49,7 @@ public final class BoostDice {
      *
      * @return an integer between 1 and 3
      */
+    @Override
     public int roll() {
         return random.nextInt(MAX_VALUE) + MIN_VALUE;
     }
