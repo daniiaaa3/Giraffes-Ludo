@@ -10,11 +10,14 @@ import java.util.Random;
  * Generates a random value between 1 and 6
  * with equal probability.
  *
+ * Factory Method Design Pattern:
+ * Concrete Product implementing SpecialDice.
+ *
  * MVC Component: Model
  * SRS Requirement: FR-4.2
  * Iteration: 2
  */
-public final class UltraBoostDice {
+public final class UltraBoostDice implements SpecialDice {
 
     public static final int MIN_VALUE = 1;
     public static final int MAX_VALUE = 6;
@@ -30,6 +33,8 @@ public final class UltraBoostDice {
 
     /**
      * Allows injecting Random for deterministic testing.
+     *
+     * @param random random number generator
      */
     public UltraBoostDice(Random random) {
         this.random = Objects.requireNonNull(
@@ -41,6 +46,7 @@ public final class UltraBoostDice {
      *
      * @return a value between 1 and 6
      */
+    @Override
     public int roll() {
         return random.nextInt(MAX_VALUE) + MIN_VALUE;
     }
