@@ -374,5 +374,43 @@ class QuestionControllerTest {
         assertTrue(result.isCorrect());
         assertEquals(3, result.getMovementSteps());
     }
+    
+
+    @Test
+    void registeredObserverReceivesQuestionResult() {
+        List<QuestionResultEvent> events =
+                new ArrayList<>();
+
+        controller.addObserver(events::add);
+
+        Question question = controller.startQuestion(
+                QuestionDifficulty.MEDIUM);
+
+        QuestionResultEvent result =
+                controller.submitAnswer(
+                        question.getCorrectAnswerIndex());
+
+        assertEquals(1, events.size());
+        assertSame(result, events.get(0));
+    }
+
+    @Test
+    void removedObserverDoesNotReceiveQuestionResult() {
+        List<QuestionResultEvent> events =
+                new ArrayList<>();
+
+        Model.QuestionObserver observer = events::add;
+
+        controller.addObserver(observer);
+        controller.removeObserver(observer);
+
+        Question question = controller.startQuestion(
+                QuestionDifficulty.HARD);
+
+        controller.submitAnswer(
+                question.getCorrectAnswerIndex());
+
+        assertTrue(events.isEmpty());
+    }
 
 }

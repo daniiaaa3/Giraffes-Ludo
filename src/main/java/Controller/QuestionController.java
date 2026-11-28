@@ -3,6 +3,9 @@ package Controller;
 
 import java.util.Objects;
 
+import Model.QuestionObserver;
+
+
 import Model.Question;
 import Model.QuestionDifficulty;
 import Model.QuestionEngine;
@@ -90,5 +93,21 @@ public final class QuestionController {
     public void cancelQuestion() {
         activeQuestion = null;
     }
+    
+
+    /**
+     * Registers an observer for educational question results.
+     */
+    public void addObserver(QuestionObserver observer) {
+        engine.addObserver(observer);
+    }
+
+    /**
+     * Removes a previously registered question observer.
+     */
+    public void removeObserver(QuestionObserver observer) {
+        engine.removeObserver(observer);
+    }
+
 
 }
